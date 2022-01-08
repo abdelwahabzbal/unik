@@ -88,7 +88,7 @@ impl Layout {
             self.field_mid.to_le(),
             self.field_high_and_version.to_le(),
             ((self.clock_seq_high_and_reserved as u16) << 8 | self.clock_seq_low as u16).to_le(),
-            u64::from_ne_bytes(self.node.0),
+            u64::from_le_bytes(self.node.0),
         )
     }
 
@@ -99,7 +99,7 @@ impl Layout {
             self.field_mid.to_be(),
             self.field_high_and_version.to_be(),
             ((self.clock_seq_high_and_reserved as u16) << 8 | self.clock_seq_low as u16).to_be(),
-            u64::from_ne_bytes(self.node.0),
+            u64::from_be_bytes(self.node.0),
         )
     }
 }
