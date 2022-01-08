@@ -10,10 +10,46 @@
 #![feature(doc_cfg)]
 
 use core::fmt;
+use core::sync::atomic;
 
-use mac_address::MacAddress;
+use chrono::Utc;
+// use mac_address::MacAddress;
 
-pub type Node = MacAddress;
+//
+#[derive(Debug, Default)]
+pub struct Node(pub [u8; 8]); // NOTICE: We have not `u48` so use `u64` instead
+
+/// Timestamp used as a `u64`. For this reason, dates prior to gregorian
+/// calendar are not supported.
+pub struct Timestamp(u64);
+
+impl Timestamp {
+    pub fn from_hidjri() {
+        todo!()
+    }
+
+    pub fn from_utc() -> Self {
+        Timestamp(Utc::now().timestamp_nanos() as u64)
+    }
+
+    pub fn from_unix() -> Self {
+        Timestamp(
+            Utc::now()
+                .checked_sub_signed(chrono::Duration::nanoseconds(0x01B2_1DD2_1381_4000))
+                .unwrap()
+                .timestamp_nanos() as u64,
+        )
+    }
+}
+
+/// Used to avoid duplicates that could arise when the clock is set backwards in time.
+pub struct ClockSeq(u16);
+
+impl ClockSeq {
+    pub fn new(rand: u16) -> u16 {
+        atomic::AtomicU16::new(rand).fetch_add(1, atomic::Ordering::SeqCst)
+    }
+}
 
 #[derive(Debug)]
 pub struct Layout {
@@ -31,7 +67,42 @@ pub struct Layout {
     pub node: Node,
 }
 
-impl Layout {}
+impl Layout {
+    pub fn as_fields(&self) -> (u32, u16, u16, u16, u64) {
+        (
+            u32::from_ne_bytes(self.field_low.to_ne_bytes()),
+            u16::from_ne_bytes(self.field_mid.to_ne_bytes()),
+            u16::from_ne_bytes(self.field_high_and_version.to_ne_bytes()),
+            u16::from_ne_bytes(
+                ((self.clock_seq_high_and_reserved as u16) << 8 | self.clock_seq_low as u16)
+                    .to_ne_bytes(),
+            ),
+            u64::from_ne_bytes(self.node.0),
+        )
+    }
+
+    /// Returns the five field values of the `UUID` in little-endian order.
+    pub fn as_fields_le(&self) -> (u32, u16, u16, u16, u64) {
+        (
+            self.field_low.to_le(),
+            self.field_mid.to_le(),
+            self.field_high_and_version.to_le(),
+            ((self.clock_seq_high_and_reserved as u16) << 8 | self.clock_seq_low as u16).to_le(),
+            u64::from_ne_bytes(self.node.0),
+        )
+    }
+
+    /// Returns the five field values of the `UUID` in big-endian order.
+    pub fn as_fields_be(&self) -> (u32, u16, u16, u16, u64) {
+        (
+            self.field_low.to_be(),
+            self.field_mid.to_be(),
+            self.field_high_and_version.to_be(),
+            ((self.clock_seq_high_and_reserved as u16) << 8 | self.clock_seq_low as u16).to_be(),
+            u64::from_ne_bytes(self.node.0),
+        )
+    }
+}
 
 #[derive(Default, Debug, PartialEq)]
 pub struct UUID([u8; 16]);
@@ -137,15 +208,36 @@ impl fmt::UpperHex for UUID {
     }
 }
 
+#[derive(Debug, Eq, PartialEq)]
+pub enum Version {
+    /// The time-based version specified in `rfc4122` document.
+    TIME = 1,
+    /// DCE-security version, with embedded POSIX UIDs.
+    DCE,
+    /// The name-based version specified in `rfc4122` document that uses MD5 hashing.
+    MD5,
+    /// The randomly or pseudo-randomly generated version specified in `rfc4122` document.
+    RAND,
+    /// The name-based version specified in `rfc4122`document that uses SHA-1 hashing.
+    SHA1,
+}
+
+#[derive(Debug, Eq, PartialEq)]
+pub enum Variant {
+    /// Reserved, NCS backward compatibility.
+    NCS = 0,
+    /// The variant specified in `rfc4122` document.
+    RFC,
+    /// Reserved, Microsoft Corporation backward compatibility.
+    MS,
+    /// Reserved for future definition.
+    FUT,
+}
+
 #[cfg(test)]
 mod tests {
-    use super::*;
 
-    #[test]
-    fn network_address_default() {
-        let node = Node::default();
-        assert_eq!(node, Node::new([0; 6]));
-    }
+    use super::*;
 
     #[test]
     fn uuid_default() {
