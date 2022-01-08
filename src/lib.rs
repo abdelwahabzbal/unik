@@ -144,15 +144,12 @@ mod tests {
     #[test]
     fn network_address_default() {
         let node = Node::default();
-        assert_eq!(node, Node::new([0x0, 0x0, 0x0, 0x0, 0x0, 0x0]));
+        assert_eq!(node, Node::new([0; 6]));
     }
 
     #[test]
     fn uuid_default() {
         let uuid = UUID::default();
-        assert_eq!(
-            uuid,
-            UUID([0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0])
-        );
+        assert_eq!(uuid, UUID([0; 16]));
     }
 }
