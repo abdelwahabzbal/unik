@@ -20,5 +20,10 @@ keywords = [
 repository = "https://github.com/awh6al/unik"
 
 [dependencies]
-mac_address = "1.1.2"
-chrono = "0.4.19"
+mac_address = {version = "1.1.2", optional = true}
+chrono = {version = "0.4.19", optional = true}
+rand_core = {version = "0.6.3", features = ["getrandom"]}
+
+[features]
+default = ["v1"]
+v1 = ["mac_address", "chrono"]

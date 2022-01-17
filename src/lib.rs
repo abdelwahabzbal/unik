@@ -18,7 +18,7 @@ use chrono::Utc;
 use rand_core::{OsRng, RngCore};
 
 //
-#[derive(Debug, Default)]
+#[derive(Debug, Default, PartialEq, Eq)]
 pub struct Node([u8; 6]);
 
 impl Node {
@@ -35,7 +35,7 @@ impl fmt::Display for Node {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(
             fmt,
-            "{:02}{:02}{:02}{:02}{:02}{:02}",
+            "{:02x}{:02x}{:02x}{:02x}{:02x}{:02x}",
             self.0[0], self.0[1], self.0[2], self.0[3], self.0[4], self.0[5],
         )
     }
@@ -61,8 +61,8 @@ impl fmt::UpperHex for Node {
     }
 }
 
-/// Timestamp used as a `u64`. For this reason, dates prior to gregorian calendar
-/// are not supported.
+/// Timestamp used as a `u64`. For this reason, dates prior to
+/// gregorian calendar are not supported.
 pub struct Timestamp(u64);
 
 impl Timestamp {
@@ -89,24 +89,27 @@ impl ClockSeq {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct Layout {
+    pub timastamp: u64,
+    pub version: Version,
+    pub variant: Variant,
     /// The low field of the Timestamp.
-    pub field_low: u32,
+    field_low: u32,
     /// The mid field of the Timestamp.
-    pub field_mid: u16,
+    field_mid: u16,
     /// The high field of the Timestamp multiplexed with the version number.
-    pub field_high_and_version: u16,
+    field_high_and_version: u16,
     /// The high field of the ClockSeq multiplexed with the variant.
-    pub clock_seq_high_and_reserved: u8,
+    clock_seq_high_and_reserved: u8,
     /// The low field of the ClockSeq.
-    pub clock_seq_low: u8,
+    clock_seq_low: u8,
     /// IEEE-802 network address.
-    pub node: Node,
+    node: Node,
 }
 
 impl Layout {
-    pub fn as_fields(&self) -> (u32, u16, u16, u16, u64) {
+    pub const fn as_fields(&self) -> (u32, u16, u16, u16, u64) {
         (
             u32::from_ne_bytes(self.field_low.to_ne_bytes()),
             u16::from_ne_bytes(self.field_mid.to_ne_bytes()),
@@ -115,21 +118,54 @@ impl Layout {
                 ((self.clock_seq_high_and_reserved as u16) << 8 | self.clock_seq_low as u16)
                     .to_ne_bytes(),
             ),
-            u64::from_ne_bytes([
-                0,
-                0,
-                self.node.0[0],
-                self.node.0[1],
-                self.node.0[2],
-                self.node.0[3],
-                self.node.0[4],
-                self.node.0[5],
-            ]),
+            self.node.to_u64(),
         )
+    }
+
+    pub const fn generate(&self) -> UUID {
+        UUID([
+            self.field_low.to_ne_bytes()[0],
+            self.field_low.to_ne_bytes()[1],
+            self.field_low.to_ne_bytes()[2],
+            self.field_low.to_ne_bytes()[3],
+            self.field_mid.to_ne_bytes()[0],
+            self.field_mid.to_ne_bytes()[1],
+            self.field_high_and_version.to_ne_bytes()[0],
+            self.field_high_and_version.to_ne_bytes()[1],
+            self.clock_seq_high_and_reserved,
+            self.clock_seq_low,
+            self.node.0[0],
+            self.node.0[1],
+            self.node.0[2],
+            self.node.0[3],
+            self.node.0[4],
+            self.node.0[5],
+        ])
+    }
+
+    pub const fn version(&self) -> Result<Version, &str> {
+        match (self.field_high_and_version >> 12) & 0xf {
+            0x01 => Ok(Version::TIME),
+            0x02 => Ok(Version::DCE),
+            0x03 => Ok(Version::MD5),
+            0x04 => Ok(Version::RAND),
+            0x05 => Ok(Version::SHA1),
+            _ => Err("Invalid version"),
+        }
+    }
+
+    pub const fn variant(&self) -> Result<Variant, &str> {
+        match (self.clock_seq_high_and_reserved >> 4) & 0xf {
+            0x00 => Ok(Variant::NCS),
+            0x01 => Ok(Variant::RFC),
+            0x02 => Ok(Variant::MS),
+            0x03 => Ok(Variant::FUT),
+            _ => Err("Invalid Variant"),
+        }
     }
 }
 
-#[derive(Default, Debug, PartialEq)]
+#[derive(Default, Debug, PartialEq, Eq)]
 pub struct UUID([u8; 16]);
 
 impl UUID {
@@ -162,7 +198,7 @@ impl fmt::Display for UUID {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(
             fmt,
-            "{:02}{:02}{:02}{:02}{:02}{:02}{:02}{:02}{:02}{:02}{:02}{:02}{:02}{:02}{:02}{:02}",
+            "{:02x}{:02x}{:02x}{:02x}{:02x}{:02x}{:02x}{:02x}{:02x}{:02x}{:02x}{:02x}{:02x}{:02x}{:02x}{:02x}",
             self.0[0],
             self.0[1],
             self.0[2],
@@ -233,7 +269,7 @@ impl fmt::UpperHex for UUID {
     }
 }
 
-#[derive(Debug, Eq, PartialEq)]
+#[derive(Debug, Eq, PartialEq, Clone, Copy)]
 pub enum Version {
     /// The time-based version specified in `rfc4122` document.
     TIME = 1,
@@ -284,6 +320,6 @@ mod tests {
     #[test]
     fn node_as_u64() {
         let node = Node([u8::MAX; 6]);
-        assert_eq!(node.to_u64(), u64::MAX >> 16)
+        assert_eq!(node.to_u64(), u64::MAX >> 16);
     }
 }
