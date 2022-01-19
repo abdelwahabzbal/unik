@@ -10,7 +10,7 @@ impl Layout {
         let version = Version::SHA1;
 
         Self {
-            timastamp: None,
+            timestamp: None,
             version: version,
             variant: Variant::RFC,
             field_low: ((hash[0] as u32) << 24)
@@ -46,7 +46,7 @@ mod tests {
         let namespace = [UUID::DNS, UUID::OID, UUID::URL, UUID::X500];
 
         for &ns in namespace.iter() {
-            assert_eq!(UUID::v3("pack", ns).timastamp, None);
+            assert_eq!(UUID::v3("pack", ns).timestamp, None);
             assert_eq!(UUID::v3("hack", ns).version, Version::SHA1);
             assert_eq!(UUID::v3("jack", ns).variant, Variant::RFC);
         }

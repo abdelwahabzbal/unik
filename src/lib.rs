@@ -91,7 +91,7 @@ impl ClockSeq {
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub struct Layout {
-    pub timastamp: Option<u64>,
+    pub timestamp: Option<u64>,
     pub version: Version,
     pub variant: Variant,
     /// The low field of the Timestamp.

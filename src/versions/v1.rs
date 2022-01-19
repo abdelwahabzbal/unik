@@ -8,7 +8,7 @@ impl<'a> Layout {
         let version = Version::TIME;
 
         Self {
-            timastamp: Some(ts.0),
+            timestamp: Some(ts.0),
             version: version,
             variant: Variant::RFC,
             field_low: (ts.0 & 0xffff_ffff) as u32,
@@ -39,7 +39,7 @@ mod tests {
     fn uuid_new_v1() {
         let layout = UUID::v1(&Timestamp(1234_5678), Node([u8::MAX; 6]));
 
-        assert_eq!(layout.timastamp, Some(1234_5678));
+        assert_eq!(layout.timestamp, Some(1234_5678));
         assert_eq!(layout.version, Version::TIME);
         assert_eq!(layout.variant, Variant::RFC);
 
