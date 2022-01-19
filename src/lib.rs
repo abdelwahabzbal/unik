@@ -18,7 +18,7 @@ use chrono::Utc;
 use rand_core::{OsRng, RngCore};
 
 //
-#[derive(Debug, Default, PartialEq, Eq)]
+#[derive(Debug, Default, PartialEq, Eq, Clone, Copy)]
 pub struct Node([u8; 6]);
 
 impl Node {
@@ -89,9 +89,9 @@ impl ClockSeq {
     }
 }
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub struct Layout {
-    pub timastamp: u64,
+    pub timastamp: Option<u64>,
     pub version: Version,
     pub variant: Variant,
     /// The low field of the Timestamp.
@@ -165,7 +165,7 @@ impl Layout {
     }
 }
 
-#[derive(Default, Debug, PartialEq, Eq)]
+#[derive(Default, Debug, PartialEq, Eq, Clone, Copy)]
 pub struct UUID([u8; 16]);
 
 impl UUID {
@@ -283,7 +283,7 @@ pub enum Version {
     SHA1,
 }
 
-#[derive(Debug, Eq, PartialEq)]
+#[derive(Debug, Eq, PartialEq, Clone, Copy)]
 pub enum Variant {
     /// Reserved, NCS backward compatibility.
     NCS = 0,
