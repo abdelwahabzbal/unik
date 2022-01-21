@@ -63,6 +63,7 @@ impl fmt::UpperHex for Node {
 
 /// Timestamp used as a `u64`. For this reason, dates prior to
 /// gregorian calendar are not supported.
+#[derive(Clone, Copy)]
 pub struct Timestamp(u64);
 
 impl Timestamp {
@@ -95,7 +96,7 @@ pub struct Layout {
     pub version: Version,
     pub variant: Variant,
     /// The low field of the Timestamp.
-    field_low: u32,
+    pub field_low: u32,
     /// The mid field of the Timestamp.
     field_mid: u16,
     /// The high field of the Timestamp multiplexed with the version number.
@@ -160,7 +161,7 @@ impl Layout {
             0x01 => Ok(Variant::RFC),
             0x02 => Ok(Variant::MS),
             0x03 => Ok(Variant::FUT),
-            _ => Err("Invalid Variant"),
+            _ => Err("Invalid variant"),
         }
     }
 }
@@ -298,8 +299,10 @@ pub enum Variant {
 pub(crate) fn clock_seq_high_and_reserved(s: u8) -> (u8, u8) {
     let mut key = [0u8; 2];
     OsRng.fill_bytes(&mut key);
+
     let random_u64 = (OsRng.next_u64() & 0xff) as u16;
     let clock_seq = ClockSeq::new(random_u64);
+
     (
         ((clock_seq >> 8) & 0xf) as u8 | s << 4,
         (clock_seq & 0xff) as u8,
