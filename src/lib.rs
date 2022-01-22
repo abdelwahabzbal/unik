@@ -17,6 +17,8 @@ use core::sync::atomic;
 use chrono::Utc;
 use nanorand::{Rng, WyRand};
 
+pub use mac_address::get_mac_address;
+
 #[derive(Debug, Default, PartialEq, Eq, Clone, Copy)]
 pub struct Node([u8; 6]);
 
@@ -30,6 +32,7 @@ impl Node {
             | (self.0[0] as u64)) as u64
     }
 }
+
 impl fmt::Display for Node {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(
