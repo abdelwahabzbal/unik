@@ -5,19 +5,15 @@ use crate::{Layout, Node, Variant, Version, UUID};
 
 impl Layout {
     fn using_md5(hash: [u8; 16]) -> Self {
-        let version = Version::MD5;
-
         Self {
             timestamp: None,
-            version: version,
-            variant: Variant::RFC,
             field_low: ((hash[0] as u32) << 24)
                 | (hash[1] as u32) << 16
                 | (hash[2] as u32) << 8
                 | hash[3] as u32,
             field_mid: (hash[4] as u16) << 8 | (hash[5] as u16),
             field_high_and_version: ((hash[6] as u16) << 8 | (hash[7] as u16)) & 0xfff
-                | (version as u16) << 12,
+                | (Version::MD5 as u16) << 12,
             clock_seq_high_and_reserved: (hash[8] & 0xf) | (Variant::RFC as u8) << 4,
             clock_seq_low: hash[9] as u8,
             node: Node([hash[10], hash[11], hash[12], hash[13], hash[14], hash[15]]),
@@ -41,8 +37,8 @@ mod tests {
 
         for &ns in namespace.iter() {
             assert_eq!(UUID::v3("pack", ns).timestamp, None);
-            assert_eq!(UUID::v5("hack", ns).version, Version::MD5);
-            assert_eq!(UUID::v5("jack", ns).variant, Variant::RFC);
+            assert_eq!(UUID::v5("hack", ns).version(), Ok(Version::MD5));
+            assert_eq!(UUID::v5("jack", ns).variant(), Ok(Variant::RFC));
         }
     }
 }

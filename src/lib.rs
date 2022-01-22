@@ -15,9 +15,8 @@ use core::fmt;
 use core::sync::atomic;
 
 use chrono::Utc;
-use rand_core::{OsRng, RngCore};
+use nanorand::{Rng, WyRand};
 
-//
 #[derive(Debug, Default, PartialEq, Eq, Clone, Copy)]
 pub struct Node([u8; 6]);
 
@@ -93,8 +92,6 @@ impl ClockSeq {
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub struct Layout {
     pub timestamp: Option<u64>,
-    pub version: Version,
-    pub variant: Variant,
     /// The low field of the Timestamp.
     pub field_low: u32,
     /// The mid field of the Timestamp.
@@ -170,6 +167,10 @@ impl Layout {
 pub struct UUID([u8; 16]);
 
 impl UUID {
+    pub const fn as_bytes(&self) -> [u8; 16] {
+        self.0
+    }
+
     /// UUID namespace for domain name system (DNS).
     pub const DNS: UUID = UUID([
         0x6b, 0xa7, 0xb8, 0x10, 0x9d, 0xad, 0x11, 0xd1, 0x80, 0xb4, 0x00, 0xc0, 0x4f, 0xd4, 0x30,
@@ -296,17 +297,8 @@ pub enum Variant {
     FUT,
 }
 
-pub(crate) fn clock_seq_high_and_reserved(s: u8) -> (u8, u8) {
-    let mut key = [0u8; 2];
-    OsRng.fill_bytes(&mut key);
-
-    let random_u64 = (OsRng.next_u64() & 0xff) as u16;
-    let clock_seq = ClockSeq::new(random_u64);
-
-    (
-        ((clock_seq >> 8) & 0xf) as u8 | s << 4,
-        (clock_seq & 0xff) as u8,
-    )
+pub(crate) fn clock_seq_high_and_reserved() -> u16 {
+    ClockSeq::new(WyRand::new().generate::<u16>())
 }
 
 #[cfg(test)]

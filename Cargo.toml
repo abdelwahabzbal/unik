@@ -23,7 +23,7 @@ repository = "https://github.com/awh6al/unik"
 mac_address = {version = "1.1.2", optional = true}
 libc = {version = "0.2.113", optional = true}
 chrono = {version = "0.4.19", optional = true}
-rand_core = {version = "0.6.3", features = ["getrandom"], optional = true}
+nanorand = {version = "0.6.1", optional = true}
 md5 = { version = "0.7.0", optional = true }
 sha1 = { version = "0.6.0", optional = true }
 
@@ -32,7 +32,7 @@ default = ["v1", "v2", "v3", "v4", "v5"]
 v1 = ["mac_address", "chrono"]
 v2 = ["libc"]
 v3 = ["sha1"]
-v4 = ["rand_core"]
+v4 = ["nanorand"]
 v5 = ["md5"]
 
 [package.metadata.docs.rs]

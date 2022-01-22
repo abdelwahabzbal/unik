@@ -4,18 +4,14 @@
 use crate::{Layout, Node, Timestamp, Variant, Version, UUID};
 
 impl Layout {
-    fn from_fields(ts: Timestamp, clock_seq: (u8, u8), node: Node) -> Self {
-        let version = Version::TIME;
-
+    fn from_fields(ts: Timestamp, clock_seq: u16, node: Node) -> Self {
         Self {
             timestamp: Some(ts.0),
-            version: version,
-            variant: Variant::RFC,
             field_low: (ts.0 & 0xffff_ffff) as u32,
             field_mid: ((ts.0 >> 32 & 0xffff) as u16),
-            field_high_and_version: (ts.0 >> 48 & 0xfff) as u16 | (version as u16) << 12,
-            clock_seq_high_and_reserved: clock_seq.0,
-            clock_seq_low: clock_seq.1,
+            field_high_and_version: (ts.0 >> 48 & 0xfff) as u16 | (Version::TIME as u16) << 12,
+            clock_seq_high_and_reserved: (clock_seq >> 8 & 0xf) as u8 | (Variant::RFC as u8) << 4,
+            clock_seq_low: (clock_seq & 0xff) as u8,
             node: node,
         }
     }
@@ -23,11 +19,7 @@ impl Layout {
 
 impl UUID {
     pub fn v1(ts: Timestamp, node: Node) -> Layout {
-        Layout::from_fields(
-            ts,
-            crate::clock_seq_high_and_reserved(Variant::RFC as u8),
-            node,
-        )
+        Layout::from_fields(ts, crate::clock_seq_high_and_reserved(), node)
     }
 }
 

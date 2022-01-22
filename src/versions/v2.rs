@@ -11,24 +11,19 @@ pub enum Domain {
 }
 
 impl Layout {
-    fn from_dce(ts: Timestamp, clock_seq: (u8, u8), node: Node, domain: Domain) -> Self {
-        let version = Version::DCE;
-        let id;
-
-        match domain {
-            Domain::PERSON => id = unsafe { libc::getuid() },
-            Domain::GROUP => id = unsafe { libc::getgid() },
+    fn from_dce(ts: Timestamp, clock_seq: u16, node: Node, domain: Domain) -> Self {
+        let id = match domain {
+            Domain::PERSON => unsafe { libc::getuid() },
+            Domain::GROUP => unsafe { libc::getgid() },
             Domain::ORG => todo!(),
-        }
+        };
 
         Self {
             timestamp: None,
-            version: version,
-            variant: Variant::RFC,
             field_low: id,
             field_mid: ((ts.0 >> 32 & 0xffff) as u16),
-            field_high_and_version: (ts.0 >> 48 & 0xfff) as u16 | (version as u16) << 12,
-            clock_seq_high_and_reserved: clock_seq.0,
+            field_high_and_version: (ts.0 >> 48 & 0xfff) as u16 | (Version::DCE as u16) << 12,
+            clock_seq_high_and_reserved: (clock_seq >> 8 & 0xf) as u8 | (Variant::RFC as u8) << 4,
             clock_seq_low: domain as u8,
             node: node,
         }
@@ -37,12 +32,7 @@ impl Layout {
 
 impl UUID {
     pub fn v2(ts: Timestamp, node: Node, domain: Domain) -> Layout {
-        Layout::from_dce(
-            ts,
-            crate::clock_seq_high_and_reserved(Variant::RFC as u8),
-            node,
-            domain,
-        )
+        Layout::from_dce(ts, crate::clock_seq_high_and_reserved(), node, domain)
     }
 }
 
