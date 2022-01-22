@@ -12,7 +12,7 @@ pub enum Domain {
 
 impl Layout {
     fn from_dce(ts: Timestamp, clock_seq: u16, node: Node, domain: Domain) -> Self {
-        let id: u32 = {
+        let id = {
             #[cfg(all(windows))]
             unsafe {
                 libc::getpid() as u32
@@ -56,7 +56,5 @@ mod tests {
 
         assert_eq!(layout.version(), Ok(Version::DCE));
         assert_eq!(layout.variant(), Ok(Variant::RFC));
-
-        assert_eq!(layout.field_low, unsafe { libc::getuid() });
     }
 }
