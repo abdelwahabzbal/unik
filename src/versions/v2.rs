@@ -12,9 +12,13 @@ pub enum Domain {
 
 impl Layout {
     fn from_dce(ts: Timestamp, clock_seq: u16, node: Node, domain: Domain) -> Self {
-        let id = if cfg!(windows) {
-            unsafe { libc::getpid() as u32 }
-        } else {
+        let id: u32 = {
+            #[cfg(all(windows))]
+            unsafe {
+                libc::getpid() as u32
+            }
+
+            #[cfg(all(unix))]
             match domain {
                 Domain::PERSON => unsafe { libc::getuid() },
                 Domain::GROUP => unsafe { libc::getgid() },
