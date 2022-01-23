@@ -1,7 +1,7 @@
 #![cfg(feature = "v2")]
-#![doc(cfg(feature = "v2"))]
+// #![doc(cfg(feature = "v2"))]
 
-use crate::{Layout, Node, Timestamp, Variant, Version, UUID};
+use crate::{Layout, MacAddress, Timestamp, Variant, Version, UUID};
 
 #[derive(Debug, Copy, Clone)]
 pub enum Domain {
@@ -11,7 +11,7 @@ pub enum Domain {
 }
 
 impl Layout {
-    fn from_dce(ts: Timestamp, clock_seq: u16, node: Node, domain: Domain) -> Self {
+    fn from_dce(ts: Timestamp, clock_seq: u16, node: MacAddress, domain: Domain) -> Self {
         let id = {
             #[cfg(all(windows))]
             unsafe {
@@ -39,7 +39,7 @@ impl Layout {
 }
 
 impl UUID {
-    pub fn v2(ts: Timestamp, node: Node, domain: Domain) -> Layout {
+    pub fn v2(ts: Timestamp, node: MacAddress, domain: Domain) -> Layout {
         Layout::from_dce(ts, crate::clock_seq_high_and_reserved(), node, domain)
     }
 }
@@ -51,8 +51,12 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_name() {
-        let layout = UUID::v2(Timestamp::from_utc(), Node([u8::MAX; 6]), Domain::PERSON);
+    fn uuid_new_v2() {
+        let layout = UUID::v2(
+            Timestamp::from_utc(),
+            MacAddress::new([u8::MAX; 6]),
+            Domain::PERSON,
+        );
 
         assert_eq!(layout.version(), Ok(Version::DCE));
         assert_eq!(layout.variant(), Ok(Variant::RFC));

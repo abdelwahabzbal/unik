@@ -1,10 +1,12 @@
 #![cfg(feature = "v1")]
-#![doc(cfg(feature = "v1"))]
+// #![doc(cfg(feature = "v1"))]
 
-use crate::{Layout, Node, Timestamp, Variant, Version, UUID};
+use mac_address::MacAddress;
+
+use crate::{Layout, Timestamp, Variant, Version, UUID};
 
 impl Layout {
-    fn from_fields(ts: Timestamp, clock_seq: u16, node: Node) -> Self {
+    fn from_fields(ts: Timestamp, clock_seq: u16, node: MacAddress) -> Self {
         Self {
             timestamp: Some(ts.0),
             field_low: (ts.0 & 0xffff_ffff) as u32,
@@ -18,7 +20,7 @@ impl Layout {
 }
 
 impl UUID {
-    pub fn v1(ts: Timestamp, node: Node) -> Layout {
+    pub fn v1(ts: Timestamp, node: MacAddress) -> Layout {
         Layout::from_fields(ts, crate::clock_seq_high_and_reserved(), node)
     }
 }
@@ -29,7 +31,7 @@ mod tests {
 
     #[test]
     fn uuid_new_v1() {
-        let layout = UUID::v1(Timestamp(1234_5678), Node([u8::MAX; 6]));
+        let layout = UUID::v1(Timestamp(1234_5678), MacAddress::new([u8::MAX; 6]));
 
         assert_eq!(layout.timestamp, Some(1234_5678));
         assert_eq!(layout.version(), Ok(Version::TIME));

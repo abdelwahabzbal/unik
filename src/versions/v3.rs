@@ -1,9 +1,9 @@
 #![cfg(feature = "v3")]
-#![doc(cfg(feature = "v3"))]
+// #![doc(cfg(feature = "v3"))]
 
 use sha1::Sha1;
 
-use crate::{Layout, Node, Variant, Version, UUID};
+use crate::{Layout, MacAddress, Variant, Version, UUID};
 
 impl Layout {
     fn using_sha1(hash: [u8; 16]) -> Self {
@@ -18,7 +18,7 @@ impl Layout {
                 | (Version::SHA1 as u16) << 12,
             clock_seq_high_and_reserved: (hash[8] & 0xf) | (Variant::RFC as u8) << 4,
             clock_seq_low: hash[9] as u8,
-            node: Node([hash[10], hash[11], hash[12], hash[13], hash[14], hash[15]]),
+            node: MacAddress::new([hash[10], hash[11], hash[12], hash[13], hash[14], hash[15]]),
         }
     }
 }

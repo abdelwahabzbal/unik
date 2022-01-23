@@ -1,7 +1,7 @@
-#![doc(cfg(feature = "v4"))]
 #![cfg(feature = "v4")]
+// #![doc(cfg(feature = "v4"))]
 
-use crate::{Layout, Node, Variant, Version, UUID};
+use crate::{Layout, MacAddress, Variant, Version, UUID};
 // use rand_core::{OsRng, RngCore};
 
 impl UUID {
@@ -30,7 +30,7 @@ impl UUID {
                 | (Version::RAND as u16) << 12,
             clock_seq_high_and_reserved: (bytes[0] & 0xf) | (Variant::RFC as u8) << 4,
             clock_seq_low: bytes[1] as u8,
-            node: Node([bytes[2], bytes[3], bytes[4], bytes[5], bytes[6], bytes[7]]),
+            node: MacAddress::new([bytes[2], bytes[3], bytes[4], bytes[5], bytes[6], bytes[7]]),
         }
     }
 }

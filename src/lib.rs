@@ -7,7 +7,7 @@
 //! A UUID is 128 bits long, and can guarantee
 //! uniqueness across space and time.
 #![doc(html_root_url = "https://docs.rs/unik")]
-#![feature(doc_cfg)]
+// #![feature(doc_cfg)]
 
 mod versions;
 
@@ -15,56 +15,12 @@ use core::fmt;
 use core::sync::atomic;
 
 use chrono::Utc;
+use mac_address::MacAddress;
 use nanorand::{Rng, WyRand};
 
 pub use mac_address::get_mac_address;
 
-#[derive(Debug, Default, PartialEq, Eq, Clone, Copy)]
-pub struct Node([u8; 6]);
-
-impl Node {
-    pub const fn to_u64(&self) -> u64 {
-        ((self.0[5] as u64) << 40
-            | (self.0[4] as u64) << 32
-            | (self.0[3] as u64) << 24
-            | (self.0[2] as u64) << 16
-            | (self.0[1] as u64) << 8
-            | (self.0[0] as u64)) as u64
-    }
-}
-
-impl fmt::Display for Node {
-    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(
-            fmt,
-            "{:02x}{:02x}{:02x}{:02x}{:02x}{:02x}",
-            self.0[0], self.0[1], self.0[2], self.0[3], self.0[4], self.0[5],
-        )
-    }
-}
-
-impl fmt::LowerHex for Node {
-    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(
-            fmt,
-            "{:02x}{:02x}{:02x}{:02x}{:02x}{:02x}",
-            self.0[0], self.0[1], self.0[2], self.0[3], self.0[4], self.0[5],
-        )
-    }
-}
-
-impl fmt::UpperHex for Node {
-    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(
-            fmt,
-            "{:02X}{:02X}{:02X}{:02X}{:02X}{:02X}",
-            self.0[0], self.0[1], self.0[2], self.0[3], self.0[4], self.0[5],
-        )
-    }
-}
-
-/// Timestamp used as a `u64`. For this reason, dates prior to
-/// gregorian calendar are not supported.
+/// Timestamp used as a `u64`. For this reason, dates prior to gregorian calendar are not supported.
 #[derive(Clone, Copy)]
 pub struct Timestamp(u64);
 
@@ -106,11 +62,11 @@ pub struct Layout {
     /// The low field of the ClockSeq.
     clock_seq_low: u8,
     /// IEEE-802 network address.
-    node: Node,
+    node: MacAddress,
 }
 
 impl Layout {
-    pub const fn as_fields(&self) -> (u32, u16, u16, u16, u64) {
+    pub fn as_fields(&self) -> (u32, u16, u16, u16, u64) {
         (
             u32::from_ne_bytes(self.field_low.to_ne_bytes()),
             u16::from_ne_bytes(self.field_mid.to_ne_bytes()),
@@ -119,11 +75,16 @@ impl Layout {
                 ((self.clock_seq_high_and_reserved as u16) << 8 | self.clock_seq_low as u16)
                     .to_ne_bytes(),
             ),
-            self.node.to_u64(),
+            (self.node.bytes()[5] as u64) << 40
+                | (self.node.bytes()[4] as u64) << 32
+                | (self.node.bytes()[3] as u64) << 24
+                | (self.node.bytes()[2] as u64) << 16
+                | (self.node.bytes()[1] as u64) << 8
+                | (self.node.bytes()[0] as u64),
         )
     }
 
-    pub const fn generate(&self) -> UUID {
+    pub fn generate(&self) -> UUID {
         UUID([
             self.field_low.to_ne_bytes()[0],
             self.field_low.to_ne_bytes()[1],
@@ -135,12 +96,12 @@ impl Layout {
             self.field_high_and_version.to_ne_bytes()[1],
             self.clock_seq_high_and_reserved,
             self.clock_seq_low,
-            self.node.0[0],
-            self.node.0[1],
-            self.node.0[2],
-            self.node.0[3],
-            self.node.0[4],
-            self.node.0[5],
+            self.node.bytes()[0],
+            self.node.bytes()[1],
+            self.node.bytes()[2],
+            self.node.bytes()[3],
+            self.node.bytes()[4],
+            self.node.bytes()[5],
         ])
     }
 
@@ -313,11 +274,5 @@ mod tests {
     fn uuid_default() {
         let uuid = UUID::default();
         assert_eq!(uuid, UUID([0; 16]));
-    }
-
-    #[test]
-    fn node_as_u64() {
-        let node = Node([u8::MAX; 6]);
-        assert_eq!(node.to_u64(), u64::MAX >> 16);
     }
 }
