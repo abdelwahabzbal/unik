@@ -1,6 +1,3 @@
-#![cfg(feature = "v3")]
-// #![doc(cfg(feature = "v3"))]
-
 use sha1::Sha1;
 
 use crate::{Layout, MacAddress, Variant, Version, UUID};

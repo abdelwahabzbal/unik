@@ -1,6 +1,3 @@
-#![cfg(feature = "v5")]
-// #![doc(cfg(feature = "v5"))]
-
 use crate::{Layout, MacAddress, Variant, Version, UUID};
 
 impl Layout {

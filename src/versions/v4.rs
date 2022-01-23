@@ -1,21 +1,9 @@
-#![cfg(feature = "v4")]
-// #![doc(cfg(feature = "v4"))]
-
 use crate::{Layout, MacAddress, Variant, Version, UUID};
-// use rand_core::{OsRng, RngCore};
+
+use nanorand::{Rng, WyRand};
 
 impl UUID {
     pub fn v4() -> Layout {
-        // let mut key = [0u8; 128];
-        // OsRng.fill_bytes(&mut key);
-        //
-        // let random_u64_round_1 = OsRng.next_u64();
-        // let round_1 = random_u64_round_1.to_ne_bytes();
-        //
-        // let random_u64_round_2 = OsRng.next_u64();
-        // let round_2 = random_u64_round_2.to_ne_bytes();
-
-        use nanorand::{Rng, WyRand};
         let mut rng = WyRand::new();
         let bytes = rng.generate::<u128>().to_ne_bytes();
 

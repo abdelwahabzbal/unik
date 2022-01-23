@@ -4,10 +4,9 @@
 //! This lib can be used to create unique and reasonably short
 //! values without requiring extra knowledge.
 //!
-//! A UUID is 128 bits long, and can guarantee
-//! uniqueness across space and time.
+//! A UUID is 128 bits long, and can guarantee uniqueness across space and time.
 #![doc(html_root_url = "https://docs.rs/unik")]
-// #![feature(doc_cfg)]
+#![feature(doc_cfg)]
 
 mod versions;
 
@@ -20,39 +19,12 @@ use nanorand::{Rng, WyRand};
 
 pub use mac_address::get_mac_address;
 
-/// Timestamp used as a `u64`. For this reason, dates prior to gregorian calendar are not supported.
-#[derive(Clone, Copy)]
-pub struct Timestamp(u64);
-
-impl Timestamp {
-    pub fn from_utc() -> Self {
-        Timestamp(Utc::now().timestamp_nanos() as u64)
-    }
-
-    pub fn from_unix() -> Self {
-        Timestamp(
-            Utc::now()
-                .checked_sub_signed(chrono::Duration::nanoseconds(0x01B2_1DD2_1381_4000))
-                .unwrap()
-                .timestamp_nanos() as u64,
-        )
-    }
-}
-
-/// Used to avoid duplicates that could arise when the clock is set backwards in time.
-pub struct ClockSeq(u16);
-
-impl ClockSeq {
-    pub fn new(rand: u16) -> u16 {
-        atomic::AtomicU16::new(rand).fetch_add(1, atomic::Ordering::SeqCst)
-    }
-}
-
+/// The simplified version of `UUID` in terms of fields that are integral numbers of octets.
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub struct Layout {
     pub timestamp: Option<u64>,
     /// The low field of the Timestamp.
-    pub field_low: u32,
+    field_low: u32,
     /// The mid field of the Timestamp.
     field_mid: u16,
     /// The high field of the Timestamp multiplexed with the version number.
@@ -105,6 +77,7 @@ impl Layout {
         ])
     }
 
+    /// Gets version of the current generated `UUID`.
     pub const fn version(&self) -> Result<Version, &str> {
         match (self.field_high_and_version >> 12) & 0xf {
             0x01 => Ok(Version::TIME),
@@ -116,6 +89,7 @@ impl Layout {
         }
     }
 
+    /// Gets variant of the current generated `UUID`.
     pub const fn variant(&self) -> Result<Variant, &str> {
         match (self.clock_seq_high_and_reserved >> 4) & 0xf {
             0x00 => Ok(Variant::NCS),
@@ -127,10 +101,12 @@ impl Layout {
     }
 }
 
+/// Is a 128-bit number used to identify information in computer systems.
 #[derive(Default, Debug, PartialEq, Eq, Clone, Copy)]
 pub struct UUID([u8; 16]);
 
 impl UUID {
+    /// Return the memory representation of `UUID`
     pub const fn as_bytes(&self) -> [u8; 16] {
         self.0
     }
@@ -235,6 +211,7 @@ impl fmt::UpperHex for UUID {
     }
 }
 
+/// Version represents the type of UUID, and is in the most significant 4 bits of the Timestamp.
 #[derive(Debug, Eq, PartialEq, Clone, Copy)]
 pub enum Version {
     /// The time-based version specified in `rfc4122` document.
@@ -249,6 +226,7 @@ pub enum Version {
     SHA1,
 }
 
+/// Variant is a type field determines the layout of the UUID.
 #[derive(Debug, Eq, PartialEq, Clone, Copy)]
 pub enum Variant {
     /// Reserved, NCS backward compatibility.
@@ -259,6 +237,37 @@ pub enum Variant {
     MS,
     /// Reserved for future definition.
     FUT,
+}
+
+/// Represented by Coordinated Universal Time (UTC)
+///
+/// NOTE: `Timestamp` used as a `u64`. For this reason,
+/// dates prior to gregorian calendar are not supported.
+#[derive(Clone, Copy)]
+pub struct Timestamp(u64);
+
+impl Timestamp {
+    pub fn from_utc() -> Self {
+        Timestamp(Utc::now().timestamp_nanos() as u64)
+    }
+
+    pub fn from_unix() -> Self {
+        Timestamp(
+            Utc::now()
+                .checked_sub_signed(chrono::Duration::nanoseconds(0x01B2_1DD2_1381_4000))
+                .unwrap()
+                .timestamp_nanos() as u64,
+        )
+    }
+}
+
+/// Used to avoid duplicates that could arise when the clock is set backwards in time.
+pub struct ClockSeq(u16);
+
+impl ClockSeq {
+    pub fn new(rand: u16) -> u16 {
+        atomic::AtomicU16::new(rand).fetch_add(1, atomic::Ordering::SeqCst)
+    }
 }
 
 pub(crate) fn clock_seq_high_and_reserved() -> u16 {

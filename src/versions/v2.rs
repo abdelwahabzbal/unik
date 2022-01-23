@@ -1,6 +1,3 @@
-#![cfg(feature = "v2")]
-// #![doc(cfg(feature = "v2"))]
-
 use crate::{Layout, MacAddress, Timestamp, Variant, Version, UUID};
 
 #[derive(Debug, Copy, Clone)]

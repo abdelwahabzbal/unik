@@ -1,6 +1,3 @@
-#![cfg(feature = "v1")]
-// #![doc(cfg(feature = "v1"))]
-
 use mac_address::MacAddress;
 
 use crate::{Layout, Timestamp, Variant, Version, UUID};
