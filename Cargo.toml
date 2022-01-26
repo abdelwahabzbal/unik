@@ -8,7 +8,7 @@ documentation = "https://docs.rs/unik"
 license = "MIT"
 readme = "README.md"
 categories = [
-    "Algorithms",
+    "algorithms",
     "cryptography"
 ]
 keywords = [

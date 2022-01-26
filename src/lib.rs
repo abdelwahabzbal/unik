@@ -8,7 +8,7 @@
 #![doc(html_root_url = "https://docs.rs/unik")]
 #![feature(doc_cfg)]
 
-mod versions;
+pub mod versions;
 
 use core::fmt;
 use core::sync::atomic;
@@ -244,7 +244,7 @@ pub enum Variant {
 /// NOTE: `Timestamp` used as a `u64`. For this reason,
 /// dates prior to gregorian calendar are not supported.
 #[derive(Clone, Copy)]
-pub struct Timestamp(u64);
+pub struct Timestamp(pub u64);
 
 impl Timestamp {
     pub fn from_utc() -> Self {
