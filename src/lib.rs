@@ -11,7 +11,7 @@
 pub mod versions;
 
 use core::fmt;
-use core::sync::atomic;
+use std::sync::atomic::{self, AtomicU16};
 
 use chrono::Utc;
 use mac_address::MacAddress;
@@ -22,7 +22,6 @@ pub use mac_address::get_mac_address;
 /// The simplified version of `UUID` in terms of fields that are integral numbers of octets.
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub struct Layout {
-    pub timestamp: Option<u64>,
     /// The low field of the Timestamp.
     field_low: u32,
     /// The mid field of the Timestamp.
@@ -77,36 +76,47 @@ impl Layout {
         ])
     }
 
+    /// Get timestamp where `UUID` generated in.
+    pub fn get_timestamp(&self) -> u64 {
+        self.field_low as u64
+            | (self.field_mid as u64) << 32
+            | ((self.field_high_and_version as u64 >> 4) & 0xff) << 48
+    }
+
     /// Gets version of the current generated `UUID`.
-    pub const fn version(&self) -> Result<Version, &str> {
+    pub const fn get_version(&self) -> Result<Version, &str> {
         match (self.field_high_and_version >> 12) & 0xf {
-            0x01 => Ok(Version::TIME),
-            0x02 => Ok(Version::DCE),
-            0x03 => Ok(Version::MD5),
-            0x04 => Ok(Version::RAND),
-            0x05 => Ok(Version::SHA1),
+            0x1 => Ok(Version::TIME),
+            0x2 => Ok(Version::DCE),
+            0x3 => Ok(Version::MD5),
+            0x4 => Ok(Version::RAND),
+            0x5 => Ok(Version::SHA1),
             _ => Err("Invalid version"),
         }
     }
 
     /// Gets variant of the current generated `UUID`.
-    pub const fn variant(&self) -> Result<Variant, &str> {
+    pub const fn get_variant(&self) -> Result<Variant, &str> {
         match (self.clock_seq_high_and_reserved >> 4) & 0xf {
-            0x00 => Ok(Variant::NCS),
-            0x01 => Ok(Variant::RFC),
-            0x02 => Ok(Variant::MS),
-            0x03 => Ok(Variant::FUT),
+            0x0 => Ok(Variant::NCS),
+            0x1 => Ok(Variant::RFC),
+            0x2 => Ok(Variant::MS),
+            0x3 => Ok(Variant::FUT),
             _ => Err("Invalid variant"),
         }
     }
 }
 
+/// The `UUID` format is 16 octets.
+pub type Bytes = [u8; 16];
+
 /// Is a 128-bit number used to identify information in computer systems.
 #[derive(Default, Debug, PartialEq, Eq, Clone, Copy)]
-pub struct UUID([u8; 16]);
+#[repr(transparent)]
+pub struct UUID(Bytes);
 
 impl UUID {
-    /// Return the memory representation of `UUID`
+    /// Return the memory representation of `UUID`.
     pub const fn as_bytes(&self) -> [u8; 16] {
         self.0
     }
@@ -139,25 +149,25 @@ impl UUID {
 impl fmt::Display for UUID {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(
-            fmt,
-            "{:02x}{:02x}{:02x}{:02x}{:02x}{:02x}{:02x}{:02x}{:02x}{:02x}{:02x}{:02x}{:02x}{:02x}{:02x}{:02x}",
-            self.0[0],
-            self.0[1],
-            self.0[2],
-            self.0[3],
-            self.0[4],
-            self.0[5],
-            self.0[6],
-            self.0[7],
-            self.0[8],
-            self.0[9],
-            self.0[10],
-            self.0[11],
-            self.0[12],
-            self.0[13],
-            self.0[14],
-            self.0[15],
-        )
+                fmt,
+                "{:02x}{:02x}{:02x}{:02x}{:02x}{:02x}{:02x}{:02x}{:02x}{:02x}{:02x}{:02x}{:02x}{:02x}{:02x}{:02x}",
+                self.0[0],
+                self.0[1],
+                self.0[2],
+                self.0[3],
+                self.0[4],
+                self.0[5],
+                self.0[6],
+                self.0[7],
+                self.0[8],
+                self.0[9],
+                self.0[10],
+                self.0[11],
+                self.0[12],
+                self.0[13],
+                self.0[14],
+                self.0[15],
+            )
     }
 }
 
@@ -266,12 +276,29 @@ pub struct ClockSeq(u16);
 
 impl ClockSeq {
     pub fn new(rand: u16) -> u16 {
-        atomic::AtomicU16::new(rand).fetch_add(1, atomic::Ordering::SeqCst)
+        AtomicU16::new(rand).fetch_add(1, atomic::Ordering::SeqCst)
     }
 }
 
 pub(crate) fn clock_seq_high_and_reserved() -> u16 {
     ClockSeq::new(WyRand::new().generate::<u16>())
+}
+
+#[macro_export]
+macro_rules! global_layout {
+    ($b0:expr, $b1:expr, $b2:expr, $b3:expr,
+        $b4:expr, $b5:expr, $b6:expr, $b7:expr,
+        $b8:expr, $b9:expr, $b10:expr, $b11:expr,
+        $b12:expr, $b13:expr, $b14:expr, $b15:expr) => {
+        Layout {
+            field_low: $b0 as u32 | ($b1 as u32) << 8 | ($b2 as u32) << 16 | ($b3 as u32) << 24,
+            field_mid: ($b4 as u16) | (($b5 as u16) << 8),
+            field_high_and_version: ($b6 as u16) | ($b7 as u16) << 12,
+            clock_seq_high_and_reserved: ($b8 & 0xf) as u8 | (Variant::RFC as u8) << 4,
+            clock_seq_low: $b9,
+            node: MacAddress::new([$b10, $b11, $b12, $b13, $b14, $b15]),
+        }
+    };
 }
 
 #[cfg(test)]

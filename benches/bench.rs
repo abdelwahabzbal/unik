@@ -8,32 +8,22 @@
 ))]
 
 extern crate test;
-use mac_address::MacAddress;
 use test::Bencher;
+
+use mac_address::MacAddress;
 
 use unik::{self, versions::v2::Domain, *};
 
 #[bench]
 fn new_uuid_v1(b: &mut Bencher) {
-    b.iter(|| unik::UUID::v1(unik::Timestamp(1234_5678), MacAddress::new([u8::MAX; 6])).generate());
-}
-
-#[bench]
-fn new_with_mac_address(b: &mut Bencher) {
-    b.iter(|| {
-        unik::UUID::v1(
-            unik::Timestamp::from_utc(),
-            unik::get_mac_address().unwrap().unwrap(),
-        )
-        .generate()
-    });
+    b.iter(|| UUID::v1(Timestamp(1234_5678), MacAddress::new([u8::MAX; 6])));
 }
 
 #[bench]
 fn new_uuid_v2(b: &mut Bencher) {
     b.iter(|| {
         UUID::v2(
-            unik::Timestamp(1234_5678),
+            unik::Timestamp::from_utc(),
             MacAddress::new([u8::MAX; 6]),
             Domain::PERSON,
         )

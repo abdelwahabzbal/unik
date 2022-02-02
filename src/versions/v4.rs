@@ -1,25 +1,30 @@
-use crate::{Layout, MacAddress, Variant, Version, UUID};
+use crate::{global_layout, Layout, MacAddress, Variant, Version, UUID};
 
 use nanorand::{Rng, WyRand};
 
 impl UUID {
     pub fn v4() -> Layout {
         let mut rng = WyRand::new();
-        let bytes = rng.generate::<u128>().to_ne_bytes();
+        let rand = rng.generate::<u128>().to_ne_bytes();
 
-        Layout {
-            timestamp: None,
-            field_low: ((bytes[0] as u32) << 24)
-                | (bytes[1] as u32) << 16
-                | (bytes[2] as u32) << 8
-                | bytes[3] as u32,
-            field_mid: (bytes[4] as u16) << 8 | (bytes[5] as u16),
-            field_high_and_version: ((bytes[6] as u16) << 8 | (bytes[7] as u16)) & 0xfff
-                | (Version::RAND as u16) << 12,
-            clock_seq_high_and_reserved: (bytes[0] & 0xf) | (Variant::RFC as u8) << 4,
-            clock_seq_low: bytes[1] as u8,
-            node: MacAddress::new([bytes[2], bytes[3], bytes[4], bytes[5], bytes[6], bytes[7]]),
-        }
+        global_layout!(
+            rand[0],
+            rand[1],
+            rand[2],
+            rand[3],
+            rand[4],
+            rand[5],
+            rand[6],
+            Version::RAND,
+            rand[8],
+            rand[9],
+            rand[10],
+            rand[11],
+            rand[12],
+            rand[13],
+            rand[14],
+            rand[15]
+        )
     }
 }
 
@@ -31,8 +36,8 @@ mod tests {
     fn new_from_rand() {
         let uuid = UUID::v4();
 
-        assert_eq!(uuid.timestamp, None);
-        assert_eq!(uuid.version(), Ok(Version::RAND));
-        assert_eq!(uuid.variant(), Ok(Variant::RFC));
+        // assert_eq!(uuid.timestamp, None);
+        assert_eq!(uuid.get_version(), Ok(Version::RAND));
+        assert_eq!(uuid.get_variant(), Ok(Variant::RFC));
     }
 }

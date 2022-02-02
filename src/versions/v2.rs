@@ -1,14 +1,13 @@
-use crate::{Layout, MacAddress, Timestamp, Variant, Version, UUID};
+use crate::{global_layout, Layout, MacAddress, Timestamp, Variant, Version, UUID};
 
 #[derive(Debug, Copy, Clone)]
 pub enum Domain {
     PERSON = 0,
     GROUP,
-    ORG,
 }
 
-impl Layout {
-    fn from_dce(ts: Timestamp, clock_seq: u16, node: MacAddress, domain: Domain) -> Self {
+impl UUID {
+    pub fn v2(time: Timestamp, node: MacAddress, domain: Domain) -> Layout {
         let id = {
             #[cfg(all(windows))]
             unsafe {
@@ -19,31 +18,32 @@ impl Layout {
             match domain {
                 Domain::PERSON => unsafe { libc::getuid() },
                 Domain::GROUP => unsafe { libc::getgid() },
-                Domain::ORG => todo!(),
             }
         };
 
-        Self {
-            timestamp: None,
-            field_low: id,
-            field_mid: ((ts.0 >> 32 & 0xffff) as u16),
-            field_high_and_version: (ts.0 >> 48 & 0xfff) as u16 | (Version::DCE as u16) << 12,
-            clock_seq_high_and_reserved: (clock_seq >> 8 & 0xf) as u8 | (Variant::RFC as u8) << 4,
-            clock_seq_low: domain as u8,
-            node: node,
-        }
-    }
-}
-
-impl UUID {
-    pub fn v2(ts: Timestamp, node: MacAddress, domain: Domain) -> Layout {
-        Layout::from_dce(ts, crate::clock_seq_high_and_reserved(), node, domain)
+        global_layout!(
+            id.to_ne_bytes()[0],
+            id.to_ne_bytes()[1],
+            id.to_ne_bytes()[2],
+            id.to_ne_bytes()[3],
+            time.0.to_ne_bytes()[0],
+            time.0.to_ne_bytes()[1],
+            time.0.to_ne_bytes()[2],
+            Version::DCE,
+            crate::clock_seq_high_and_reserved().to_ne_bytes()[0],
+            domain as u8,
+            node.bytes()[0],
+            node.bytes()[1],
+            node.bytes()[2],
+            node.bytes()[3],
+            node.bytes()[4],
+            node.bytes()[5]
+        )
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::Variant;
 
     use super::*;
 
@@ -55,7 +55,7 @@ mod tests {
             Domain::PERSON,
         );
 
-        assert_eq!(layout.version(), Ok(Version::DCE));
-        assert_eq!(layout.variant(), Ok(Variant::RFC));
+        assert_eq!(layout.get_version(), Ok(Version::DCE));
+        assert_eq!(layout.get_variant(), Ok(Variant::RFC));
     }
 }
