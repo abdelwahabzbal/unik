@@ -1,4 +1,4 @@
-use crate::{global_layout, Layout, MacAddress, Timestamp, Variant, Version, UUID};
+use crate::{layout, Layout, MacAddress, Timestamp, Variant, Version, UUID};
 
 #[derive(Debug, Copy, Clone)]
 pub enum Domain {
@@ -21,7 +21,7 @@ impl UUID {
             }
         };
 
-        global_layout!(
+        layout!(
             id.to_ne_bytes()[0],
             id.to_ne_bytes()[1],
             id.to_ne_bytes()[2],

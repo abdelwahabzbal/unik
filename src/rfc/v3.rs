@@ -1,10 +1,14 @@
-use crate::{global_layout, Layout, MacAddress, Variant, Version, UUID};
+use sha1::Sha1;
+
+use crate::{layout, Layout, MacAddress, Variant, Version, UUID};
 
 impl UUID {
-    pub fn v5<'a>(data: &str, ns: UUID) -> Layout {
-        let hash = md5::compute(format!("{:x}", ns) + data).0;
+    pub fn v3<'a>(data: &str, ns: UUID) -> Layout {
+        let hash: [u8; 16] = Sha1::from(format!("{:x}", ns) + data).digest().bytes()[..16]
+            .try_into()
+            .unwrap();
 
-        global_layout!(
+        layout!(
             hash[0],
             hash[1],
             hash[2],
@@ -12,7 +16,7 @@ impl UUID {
             hash[4],
             hash[5],
             hash[6],
-            Version::MD5,
+            Version::SHA1,
             hash[8],
             hash[9],
             hash[10],
@@ -30,12 +34,12 @@ mod tests {
     use super::*;
 
     #[test]
-    fn new_uuid_using_md5() {
+    fn new_uuid_using_sha1() {
         let namespace = [UUID::DNS, UUID::OID, UUID::URL, UUID::X500];
 
         for &ns in namespace.iter() {
-            assert_eq!(UUID::v5("hack", ns).get_version(), Ok(Version::MD5));
-            assert_eq!(UUID::v5("jack", ns).get_variant(), Ok(Variant::RFC));
+            assert_eq!(UUID::v3("hack", ns).get_version(), Ok(Version::SHA1));
+            assert_eq!(UUID::v3("jack", ns).get_variant(), Ok(Variant::RFC));
         }
     }
 }

@@ -8,7 +8,7 @@
 #![doc(html_root_url = "https://docs.rs/unik")]
 #![feature(doc_cfg)]
 
-pub mod versions;
+pub mod rfc;
 
 use core::fmt;
 use std::sync::atomic::{self, AtomicU16};
@@ -285,7 +285,7 @@ pub(crate) fn clock_seq_high_and_reserved() -> u16 {
 }
 
 #[macro_export]
-macro_rules! global_layout {
+macro_rules! layout {
     ($b0:expr, $b1:expr, $b2:expr, $b3:expr,
         $b4:expr, $b5:expr, $b6:expr, $b7:expr,
         $b8:expr, $b9:expr, $b10:expr, $b11:expr,

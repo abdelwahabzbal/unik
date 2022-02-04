@@ -1,10 +1,10 @@
 use mac_address::MacAddress;
 
-use crate::{global_layout, Layout, Timestamp, Variant, Version, UUID};
+use crate::{layout, Layout, Timestamp, Variant, Version, UUID};
 
 impl UUID {
     pub fn v1(time: Timestamp, node: MacAddress) -> Layout {
-        global_layout!(
+        layout!(
             time.0.to_ne_bytes()[0],
             time.0.to_ne_bytes()[1],
             time.0.to_ne_bytes()[2],

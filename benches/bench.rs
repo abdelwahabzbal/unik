@@ -12,7 +12,7 @@ use test::Bencher;
 
 use mac_address::MacAddress;
 
-use unik::{self, versions::v2::Domain, *};
+use unik::{self, rfc::v2::Domain, *};
 
 #[bench]
 fn new_uuid_v1(b: &mut Bencher) {
