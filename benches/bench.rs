@@ -16,7 +16,7 @@ use unik::{self, rfc::v2::Domain, *};
 
 #[bench]
 fn new_uuid_v1(b: &mut Bencher) {
-    b.iter(|| UUID::v1(Timestamp(1234_5678), MacAddress::new([u8::MAX; 6])));
+    b.iter(|| UUID::v1(Timestamp(1234_5678), MacAddress::new([u8::MAX; 6])).generate());
 }
 
 #[bench]
@@ -27,6 +27,7 @@ fn new_uuid_v2(b: &mut Bencher) {
             MacAddress::new([u8::MAX; 6]),
             Domain::PERSON,
         )
+        .generate()
     });
 }
 
