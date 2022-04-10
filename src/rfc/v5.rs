@@ -12,7 +12,7 @@ impl UUID {
             hash[4],
             hash[5],
             hash[6],
-            Version::MD5,
+            Version::SHA1,
             hash[8],
             hash[9],
             hash[10],
@@ -34,8 +34,8 @@ mod tests {
         let namespace = [UUID::DNS, UUID::OID, UUID::URL, UUID::X500];
 
         for &ns in namespace.iter() {
-            assert_eq!(UUID::v5("hack", ns).get_version(), Ok(Version::MD5));
-            assert_eq!(UUID::v5("jack", ns).get_variant(), Ok(Variant::RFC));
+            assert_eq!(UUID::v5("test", ns).get_version(), Ok(Version::SHA1));
+            assert_eq!(UUID::v5("test", ns).get_variant(), Ok(Variant::RFC));
         }
     }
 }

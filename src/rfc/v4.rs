@@ -1,12 +1,8 @@
-use crate::{layout, Layout, MacAddress, Variant, Version, UUID};
-
-use nanorand::{Rng, WyRand};
+use crate::{get_random, layout, Layout, MacAddress, Variant, Version, UUID};
 
 impl UUID {
     pub fn v4() -> Layout {
-        let mut rng = WyRand::new();
-        let rand = rng.generate::<u128>().to_ne_bytes();
-
+        let rand = get_random().to_ne_bytes();
         layout!(
             rand[0],
             rand[1],
@@ -33,7 +29,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn new_from_rand() {
+    fn uuid_from_random() {
         let uuid = UUID::v4();
 
         assert_eq!(uuid.get_version(), Ok(Version::RAND));

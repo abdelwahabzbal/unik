@@ -2,6 +2,15 @@ use mac_address::MacAddress;
 
 use crate::{layout, Layout, Timestamp, Variant, Version, UUID};
 
+impl Layout {
+    /// Get timestamp where `UUID` generated in.
+    pub fn get_timestamp(&self) -> u64 {
+        self.field_low as u64
+            | (self.field_mid as u64) << 0x20
+            | ((self.field_high_and_version as u64 >> 0x04) & 0xff) << 0x30
+    }
+}
+
 impl UUID {
     pub fn v1(time: Timestamp, node: MacAddress) -> Layout {
         layout!(
@@ -30,14 +39,11 @@ mod tests {
     use super::*;
 
     #[test]
-    fn uuid_new_v1() {
-        let layout = UUID::v1(Timestamp(1234_5678), MacAddress::new([u8::MAX; 6]));
+    fn uuid_with_predefined_ts() {
+        let layout = UUID::v1(Timestamp(1234_5678_u64), MacAddress::new([u8::MAX; 6]));
 
         assert_eq!(layout.get_timestamp(), 1234_5678_u64);
         assert_eq!(layout.get_version(), Ok(Version::TIME));
         assert_eq!(layout.get_variant(), Ok(Variant::RFC));
-
-        let cloned = layout.clone();
-        assert!(cloned == layout);
     }
 }

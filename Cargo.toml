@@ -1,6 +1,6 @@
 [package]
 name = "unik"
-version = "0.2.0"
+version = "0.2.2"
 edition = "2021"
 description = "A Powerful Universally Unique Identifier (UUID)"
 authors = ["Wahabz <wahabz@yandex.com>"]
@@ -19,13 +19,29 @@ keywords = [
 ]
 repository = "https://github.com/awh6al/unik"
 
-[dependencies]
-mac_address = {version = "1.1.2", optional = true}
-libc = {version = "0.2.113", optional = true}
-chrono = {version = "0.4.19", optional = true}
-nanorand = {version = "0.6.1", optional = true}
-md5 = { version = "0.7.0", optional = true }
-sha1 = { version = "0.6.0", optional = true }
+[dependencies.mac_address]
+version = "1.1.2" 
+optional = true
+
+[dependencies.libc]
+version = "0.2.113"
+optional = true
+
+[dependencies.chrono]
+version = "0.4.19"
+optional = true
+
+[dependencies.nanorand]
+version = "0.6.1"
+optional = true
+
+[dependencies.md5]
+version = "0.7.0"
+optional = true
+
+[dependencies.sha1]
+version = "0.6.0"
+optional = true
 
 [features]
 default = ["v1", "v2", "v3", "v4", "v5"]

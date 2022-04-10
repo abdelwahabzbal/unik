@@ -5,6 +5,20 @@
 //! values without requiring extra knowledge.
 //!
 //! A UUID is 128 bits long, and can guarantee uniqueness across space and time.
+//!
+//! ```toml
+//! [dependencies]
+//! unik = { version = "0.2.2", features = ["v4"] }
+//! ```
+//!
+//! ```rust
+//! use unik::rfc::v4;
+//! use unik::UUID;
+//!
+//! fn main() {
+//!     println!("{:x}", UUID::v4().generate());
+//! }
+//! ```
 #![doc(html_root_url = "https://docs.rs/unik")]
 #![feature(doc_cfg)]
 
@@ -14,10 +28,11 @@ use core::fmt;
 use std::sync::atomic::{self, AtomicU16};
 
 use chrono::Utc;
-use mac_address::MacAddress;
 use nanorand::{Rng, WyRand};
 
-pub use mac_address::get_mac_address;
+pub use mac_address::{get_mac_address, MacAddress};
+
+pub type Node = MacAddress;
 
 /// The simplified version of `UUID` in terms of fields that are integral numbers of octets.
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
@@ -33,10 +48,11 @@ pub struct Layout {
     /// The low field of the ClockSeq.
     clock_seq_low: u8,
     /// IEEE-802 network address.
-    node: MacAddress,
+    node: Node,
 }
 
 impl Layout {
+    /// Returns the five fields of `UUID`.
     pub fn as_fields(&self) -> (u32, u16, u16, u16, u64) {
         (
             u32::from_ne_bytes(self.field_low.to_ne_bytes()),
@@ -46,15 +62,22 @@ impl Layout {
                 ((self.clock_seq_high_and_reserved as u16) << 8 | self.clock_seq_low as u16)
                     .to_ne_bytes(),
             ),
-            (self.node.bytes()[5] as u64) << 40
-                | (self.node.bytes()[4] as u64) << 32
-                | (self.node.bytes()[3] as u64) << 24
-                | (self.node.bytes()[2] as u64) << 16
-                | (self.node.bytes()[1] as u64) << 8
-                | (self.node.bytes()[0] as u64),
+            u64::from_ne_bytes([
+                (self.node.bytes()[0]),
+                (self.node.bytes()[1]),
+                (self.node.bytes()[2]),
+                (self.node.bytes()[3]),
+                (self.node.bytes()[4]),
+                (self.node.bytes()[5]),
+                /* Make `from_ne_bytes` method happy
+                 */
+                0,
+                0,
+            ]),
         )
     }
 
+    /// Returns the memory representation of `UUID` in native byte order.
     pub fn generate(&self) -> UUID {
         UUID([
             self.field_low.to_ne_bytes()[0],
@@ -76,32 +99,25 @@ impl Layout {
         ])
     }
 
-    /// Get timestamp where `UUID` generated in.
-    pub fn get_timestamp(&self) -> u64 {
-        self.field_low as u64
-            | (self.field_mid as u64) << 32
-            | ((self.field_high_and_version as u64 >> 4) & 0xff) << 48
-    }
-
-    /// Gets version of the current generated `UUID`.
+    /// Get version of the current generated `UUID`.
     pub const fn get_version(&self) -> Result<Version, &str> {
-        match (self.field_high_and_version >> 12) & 0xf {
-            0x1 => Ok(Version::TIME),
-            0x2 => Ok(Version::DCE),
-            0x3 => Ok(Version::MD5),
-            0x4 => Ok(Version::RAND),
-            0x5 => Ok(Version::SHA1),
+        match (self.field_high_and_version) >> 0x0c {
+            0x01 => Ok(Version::TIME),
+            0x02 => Ok(Version::DCE),
+            0x03 => Ok(Version::MD5),
+            0x04 => Ok(Version::RAND),
+            0x05 => Ok(Version::SHA1),
             _ => Err("Invalid version"),
         }
     }
 
-    /// Gets variant of the current generated `UUID`.
+    /// Get variant of the current generated `UUID`.
     pub const fn get_variant(&self) -> Result<Variant, &str> {
-        match (self.clock_seq_high_and_reserved >> 4) & 0xf {
-            0x0 => Ok(Variant::NCS),
-            0x1 => Ok(Variant::RFC),
-            0x2 => Ok(Variant::MS),
-            0x3 => Ok(Variant::FUT),
+        match self.clock_seq_high_and_reserved >> 0x04 {
+            0x00 => Ok(Variant::NCS),
+            0x01 => Ok(Variant::RFC),
+            0x02 => Ok(Variant::MS),
+            0x03 => Ok(Variant::FUT),
             _ => Err("Invalid variant"),
         }
     }
@@ -112,7 +128,6 @@ pub type Bytes = [u8; 16];
 
 /// Is a 128-bit number used to identify information in computer systems.
 #[derive(Default, Debug, PartialEq, Eq, Clone, Copy)]
-#[repr(transparent)]
 pub struct UUID(Bytes);
 
 impl UUID {
@@ -144,6 +159,45 @@ impl UUID {
         0x6b, 0xa7, 0xb8, 0x14, 0x9d, 0xad, 0x11, 0xd1, 0x80, 0xb4, 0x00, 0xc0, 0x4f, 0xd4, 0x30,
         0xc8,
     ]);
+
+    // Parse `UUID` from a string of hex digits.
+    pub fn from_str(us: &str) -> Result<Layout, &str> {
+        let mut us = us.to_string();
+        let mut bytes = [0; 16];
+
+        if us.len() == 36 || us.len() == 32 {
+            // parse with dashes and case-insensitive letters.
+            if us.contains('-') {
+                us.retain(|c| !c.is_ascii_whitespace() && c != '-');
+            }
+
+            for i in 0..16 {
+                let s = &us[i * 2..i * 2 + 2];
+                let byte = u8::from_str_radix(s, 16).map_err(|_| "Invalid UUID string")?;
+
+                if i == 0x07 {
+                    match byte {
+                        0xec => bytes[i] = Version::TIME as u8,
+                        0x20 => bytes[i] = Version::DCE as u8,
+                        0x50 => bytes[i] = Version::MD5 as u8,
+                        0xf6 => bytes[i] = Version::RAND as u8,
+                        0x51 => bytes[i] = Version::SHA1 as u8,
+                        _ => return Err("Invalid UUID string"),
+                    }
+                    continue;
+                }
+
+                bytes[i] = byte;
+            }
+        } else {
+            return Err("Invalid UUID string");
+        }
+
+        Ok(layout!(
+            bytes[0], bytes[1], bytes[2], bytes[3], bytes[4], bytes[5], bytes[6], bytes[7],
+            bytes[8], bytes[9], bytes[10], bytes[11], bytes[12], bytes[13], bytes[14], bytes[15]
+        ))
+    }
 }
 
 impl fmt::Display for UUID {
@@ -249,7 +303,7 @@ pub enum Variant {
     FUT,
 }
 
-/// Represented by Coordinated Universal Time (UTC)
+/// Represented by Coordinated Universal Time (UTC).
 ///
 /// NOTE: `Timestamp` used as a `u64`. For this reason,
 /// dates prior to gregorian calendar are not supported.
@@ -284,6 +338,14 @@ pub(crate) fn clock_seq_high_and_reserved() -> u16 {
     ClockSeq::new(WyRand::new().generate::<u16>())
 }
 
+pub fn get_random() -> u128 {
+    WyRand::new().generate::<u128>()
+}
+
+pub fn getr() -> u64 {
+    WyRand::new().generate::<u64>()
+}
+
 #[macro_export]
 macro_rules! layout {
     ($b0:expr, $b1:expr, $b2:expr, $b3:expr,
@@ -310,5 +372,78 @@ mod tests {
     fn uuid_default() {
         let uuid = UUID::default();
         assert_eq!(uuid, UUID([0; 16]));
+    }
+
+    #[test]
+    fn parse_string() {
+        // v1
+        assert_eq!(
+            UUID::from_str("ab720268-b83f-11ec-b909-0242ac120002")
+                .unwrap()
+                .get_version(),
+            Ok(Version::TIME)
+        );
+        assert_eq!(
+            UUID::from_str("ab720268b83f11ecb9090242ac120002")
+                .unwrap()
+                .get_version(),
+            Ok(Version::TIME)
+        );
+
+        // v2
+        assert_eq!(
+            UUID::from_str("e8030000-d818-4420-1d00-0242ac120002")
+                .unwrap()
+                .get_version(),
+            Ok(Version::DCE)
+        );
+        assert_eq!(
+            UUID::from_str("e8030000d81844201d000242ac120002")
+                .unwrap()
+                .get_version(),
+            Ok(Version::DCE)
+        );
+
+        // v3
+        assert_eq!(
+            UUID::from_str("2448bd95-00ca-5650-160f-3301a691b26c")
+                .unwrap()
+                .get_version(),
+            Ok(Version::MD5)
+        );
+        assert_eq!(
+            UUID::from_str("2448bd9500ca5650160f3301a691b26c")
+                .unwrap()
+                .get_version(),
+            Ok(Version::MD5)
+        );
+
+        // v4
+        assert_eq!(
+            UUID::from_str("6a665038-24cf-4cf6-9b61-05f0c2fc6c08")
+                .unwrap()
+                .get_version(),
+            Ok(Version::RAND)
+        );
+        assert_eq!(
+            UUID::from_str("6a66503824cf4cf69b6105f0c2fc6c08")
+                .unwrap()
+                .get_version(),
+            Ok(Version::RAND)
+        );
+
+        // v5
+        assert_eq!(
+            UUID::from_str("991da866-83b0-1550-1bef-37a1a5b1fb30")
+                .unwrap()
+                .get_version(),
+            Ok(Version::MD5)
+        );
+        assert_eq!(
+            UUID::from_str("991da86683b015501bef37a1a5b1fb30")
+                .unwrap()
+                .get_version(),
+            Ok(Version::MD5)
+        );
     }
 }

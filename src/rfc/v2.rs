@@ -44,11 +44,10 @@ impl UUID {
 
 #[cfg(test)]
 mod tests {
-
     use super::*;
 
     #[test]
-    fn uuid_new_v2() {
+    fn uuid_with_domain() {
         let layout = UUID::v2(
             Timestamp::from_utc(),
             MacAddress::new([u8::MAX; 6]),
