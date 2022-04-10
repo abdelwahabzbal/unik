@@ -32,6 +32,7 @@ use nanorand::{Rng, WyRand};
 
 pub use mac_address::{get_mac_address, MacAddress};
 
+/// Represent bytes of MAC address.
 pub type Node = MacAddress;
 
 /// The simplified version of `UUID` in terms of fields that are integral numbers of octets.
@@ -338,12 +339,8 @@ pub(crate) fn clock_seq_high_and_reserved() -> u16 {
     ClockSeq::new(WyRand::new().generate::<u16>())
 }
 
-pub fn get_random() -> u128 {
+pub(crate) fn get_random() -> u128 {
     WyRand::new().generate::<u128>()
-}
-
-pub fn getr() -> u64 {
-    WyRand::new().generate::<u64>()
 }
 
 #[macro_export]
