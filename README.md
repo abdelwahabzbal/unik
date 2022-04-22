@@ -14,7 +14,7 @@ This crate generates and inspects UUIDs based on
 ```TOML
 [dependencies]
 
-unik = { version = "0.2.4", features = ["v4"] }
+unik = { version = "*", features = ["v4"] }
 ```
 
 ## Usage

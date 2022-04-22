@@ -5,20 +5,6 @@
 //! values without requiring extra knowledge.
 //!
 //! A UUID is 128 bits long, and can guarantee uniqueness across space and time.
-//!
-//! ```toml
-//! [dependencies]
-//! unik = { version = "0.2.4", features = ["v4"] }
-//! ```
-//!
-//! ```rust
-//! use unik::rfc::v4;
-//! use unik::UUID;
-//!
-//! fn main() {
-//!     println!("{:x}", UUID::v4().generate());
-//! }
-//! ```
 #![doc(html_root_url = "https://docs.rs/unik")]
 #![feature(doc_cfg)]
 
@@ -360,17 +346,12 @@ mod tests {
 
     #[test]
     fn parse_string() {
-        // v1
         assert_eq!(
             Ok(Version::TIME),
             UUID::from_str("ab720268-b83f-11ec-b909-0242ac120002")
                 .unwrap()
                 .get_version()
         );
-        // println!(
-        //     "{:02x?}",
-        //     UUID::from_str("ab720268-b83f-11ec-b909-0242ac120002").unwrap()
-        // );
         assert_eq!(
             Ok(Variant::RFC),
             UUID::from_str("ab720268b83f11ecb9090242ac120002")
@@ -378,7 +359,6 @@ mod tests {
                 .get_variant()
         );
 
-        // // v2
         assert_eq!(
             Ok(Version::DCE),
             UUID::from_str("000003e8-c22b-21ec-bd01-d4bed9408ecc")
@@ -392,7 +372,6 @@ mod tests {
                 .get_variant()
         );
 
-        // // v3
         assert_eq!(
             Ok(Version::MD5),
             UUID::from_str("2448bd95-00ca-3650-160f-3301a691b26c")
@@ -406,7 +385,6 @@ mod tests {
                 .get_variant(),
         );
 
-        // // v4
         assert_eq!(
             Ok(Version::RAND),
             UUID::from_str("6a665038-24cf-4cf6-9b61-05f0c2fc6c08")
@@ -420,7 +398,6 @@ mod tests {
                 .get_variant()
         );
 
-        // // v5
         assert_eq!(
             Ok(Version::SHA1),
             UUID::from_str("991da866-83b0-5550-1bef-37a1a5b1fb30")
