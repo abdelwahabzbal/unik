@@ -12,7 +12,7 @@ impl UUID {
             hash[4],
             hash[5],
             hash[6],
-            Version::SHA1,
+            (Version::SHA1 as u8) << 4,
             hash[8],
             hash[9],
             hash[10],

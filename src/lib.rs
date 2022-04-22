@@ -8,7 +8,7 @@
 //!
 //! ```toml
 //! [dependencies]
-//! unik = { version = "0.2.2", features = ["v4"] }
+//! unik = { version = "0.2.4", features = ["v4"] }
 //! ```
 //!
 //! ```rust
@@ -102,23 +102,23 @@ impl Layout {
 
     /// Get version of the current generated `UUID`.
     pub const fn get_version(&self) -> Result<Version, &str> {
-        match (self.field_high_and_version) >> 0x0c {
-            0x01 => Ok(Version::TIME),
-            0x02 => Ok(Version::DCE),
-            0x03 => Ok(Version::MD5),
-            0x04 => Ok(Version::RAND),
-            0x05 => Ok(Version::SHA1),
+        match (self.field_high_and_version) >> 0xc {
+            0x1 => Ok(Version::TIME),
+            0x2 => Ok(Version::DCE),
+            0x3 => Ok(Version::MD5),
+            0x4 => Ok(Version::RAND),
+            0x5 => Ok(Version::SHA1),
             _ => Err("Invalid version"),
         }
     }
 
     /// Get variant of the current generated `UUID`.
     pub const fn get_variant(&self) -> Result<Variant, &str> {
-        match self.clock_seq_high_and_reserved >> 0x04 {
-            0x00 => Ok(Variant::NCS),
-            0x01 => Ok(Variant::RFC),
-            0x02 => Ok(Variant::MS),
-            0x03 => Ok(Variant::FUT),
+        match self.clock_seq_high_and_reserved >> 0x4 {
+            0x0 => Ok(Variant::NCS),
+            0x1 => Ok(Variant::RFC),
+            0x2 => Ok(Variant::MS),
+            0x3 => Ok(Variant::FUT),
             _ => Err("Invalid variant"),
         }
     }
@@ -167,26 +167,13 @@ impl UUID {
         let mut bytes = [0; 16];
 
         if us.len() == 36 || us.len() == 32 {
-            // parse with dashes and case-insensitive letters.
             if us.contains('-') {
                 us.retain(|c| !c.is_ascii_whitespace() && c != '-');
             }
 
-            for i in 0..16 {
+            for i in 0..15 {
                 let s = &us[i * 2..i * 2 + 2];
                 let byte = u8::from_str_radix(s, 16).map_err(|_| "Invalid UUID string")?;
-
-                if i == 0x07 {
-                    match byte {
-                        0xec => bytes[i] = Version::TIME as u8,
-                        0x20 => bytes[i] = Version::DCE as u8,
-                        0x50 => bytes[i] = Version::MD5 as u8,
-                        0xf6 => bytes[i] = Version::RAND as u8,
-                        0x51 => bytes[i] = Version::SHA1 as u8,
-                        _ => return Err("Invalid UUID string"),
-                    }
-                    continue;
-                }
 
                 bytes[i] = byte;
             }
@@ -195,8 +182,8 @@ impl UUID {
         }
 
         Ok(layout!(
-            bytes[0], bytes[1], bytes[2], bytes[3], bytes[4], bytes[5], bytes[6], bytes[7],
-            bytes[8], bytes[9], bytes[10], bytes[11], bytes[12], bytes[13], bytes[14], bytes[15]
+            bytes[3], bytes[2], bytes[1], bytes[0], bytes[5], bytes[4], bytes[7], bytes[6],
+            bytes[9], bytes[8], bytes[10], bytes[11], bytes[12], bytes[13], bytes[14], bytes[15]
         ))
     }
 }
@@ -352,7 +339,7 @@ macro_rules! layout {
         Layout {
             field_low: $b0 as u32 | ($b1 as u32) << 8 | ($b2 as u32) << 16 | ($b3 as u32) << 24,
             field_mid: ($b4 as u16) | (($b5 as u16) << 8),
-            field_high_and_version: ($b6 as u16) | ($b7 as u16) << 12,
+            field_high_and_version: ($b6 as u16) | ($b7 as u16) << 8,
             clock_seq_high_and_reserved: ($b8 & 0xf) as u8 | (Variant::RFC as u8) << 4,
             clock_seq_low: $b9,
             node: MacAddress::new([$b10, $b11, $b12, $b13, $b14, $b15]),
@@ -375,72 +362,76 @@ mod tests {
     fn parse_string() {
         // v1
         assert_eq!(
+            Ok(Version::TIME),
             UUID::from_str("ab720268-b83f-11ec-b909-0242ac120002")
                 .unwrap()
-                .get_version(),
-            Ok(Version::TIME)
+                .get_version()
         );
+        // println!(
+        //     "{:02x?}",
+        //     UUID::from_str("ab720268-b83f-11ec-b909-0242ac120002").unwrap()
+        // );
         assert_eq!(
+            Ok(Variant::RFC),
             UUID::from_str("ab720268b83f11ecb9090242ac120002")
                 .unwrap()
-                .get_version(),
-            Ok(Version::TIME)
+                .get_variant()
         );
 
-        // v2
+        // // v2
         assert_eq!(
-            UUID::from_str("e8030000-d818-4420-1d00-0242ac120002")
+            Ok(Version::DCE),
+            UUID::from_str("000003e8-c22b-21ec-bd01-d4bed9408ecc")
                 .unwrap()
-                .get_version(),
-            Ok(Version::DCE)
+                .get_version()
         );
         assert_eq!(
-            UUID::from_str("e8030000d81844201d000242ac120002")
+            Ok(Variant::RFC),
+            UUID::from_str("000003e8c22a21ecb600d4bed9408ecc")
                 .unwrap()
-                .get_version(),
-            Ok(Version::DCE)
-        );
-
-        // v3
-        assert_eq!(
-            UUID::from_str("2448bd95-00ca-5650-160f-3301a691b26c")
-                .unwrap()
-                .get_version(),
-            Ok(Version::MD5)
-        );
-        assert_eq!(
-            UUID::from_str("2448bd9500ca5650160f3301a691b26c")
-                .unwrap()
-                .get_version(),
-            Ok(Version::MD5)
+                .get_variant()
         );
 
-        // v4
+        // // v3
         assert_eq!(
+            Ok(Version::MD5),
+            UUID::from_str("2448bd95-00ca-3650-160f-3301a691b26c")
+                .unwrap()
+                .get_version()
+        );
+        assert_eq!(
+            Ok(Variant::RFC),
+            UUID::from_str("2448bd9500ca3650160f3301a691b26c")
+                .unwrap()
+                .get_variant(),
+        );
+
+        // // v4
+        assert_eq!(
+            Ok(Version::RAND),
             UUID::from_str("6a665038-24cf-4cf6-9b61-05f0c2fc6c08")
                 .unwrap()
-                .get_version(),
-            Ok(Version::RAND)
+                .get_version()
         );
         assert_eq!(
+            Ok(Variant::RFC),
             UUID::from_str("6a66503824cf4cf69b6105f0c2fc6c08")
                 .unwrap()
-                .get_version(),
-            Ok(Version::RAND)
+                .get_variant()
         );
 
-        // v5
+        // // v5
         assert_eq!(
-            UUID::from_str("991da866-83b0-1550-1bef-37a1a5b1fb30")
+            Ok(Version::SHA1),
+            UUID::from_str("991da866-83b0-5550-1bef-37a1a5b1fb30")
                 .unwrap()
-                .get_version(),
-            Ok(Version::MD5)
+                .get_version()
         );
         assert_eq!(
-            UUID::from_str("991da86683b015501bef37a1a5b1fb30")
+            Ok(Variant::RFC),
+            UUID::from_str("991da86683b055501bef37a1a5b1fb30")
                 .unwrap()
-                .get_version(),
-            Ok(Version::MD5)
+                .get_variant()
         );
     }
 }

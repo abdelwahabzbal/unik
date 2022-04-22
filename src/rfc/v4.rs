@@ -11,7 +11,7 @@ impl UUID {
             rand[4],
             rand[5],
             rand[6],
-            Version::RAND,
+            (Version::RAND as u8) << 4,
             rand[8],
             rand[9],
             rand[10],

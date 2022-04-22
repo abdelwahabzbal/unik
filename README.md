@@ -4,7 +4,7 @@ information in computer systems. The term globally unique identifier (GUID)
 is also used.
 
 This project is in the development stage. All API's might change without warning and no 
-guarantees are given about stability. DO NOT USE IN PRODUCTION.
+guarantees are given about stability. `DO NOT USE IN PRODUCTION.`
 
 This crate generates and inspects UUIDs based on
  * [RFC 4122](http://tools.ietf.org/html/rfc4122)
@@ -14,14 +14,12 @@ This crate generates and inspects UUIDs based on
 ```TOML
 [dependencies]
 
-unik = { version = "0.2.2", features = ["v4"] }
+unik = { version = "0.2.4", features = ["v4"] }
 ```
 
 ## Usage
 ```Rust
-use unik::v4;
-
-println!("{}", v4!())
+println!("{:x}", unik::UUID::v4().generate());
 ```
 
 ## Security

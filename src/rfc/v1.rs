@@ -21,7 +21,7 @@ impl UUID {
             time.0.to_ne_bytes()[4],
             time.0.to_ne_bytes()[5],
             time.0.to_ne_bytes()[6],
-            Version::TIME,
+            (Version::TIME as u8) << 4,
             crate::clock_seq_high_and_reserved().to_ne_bytes()[0],
             crate::clock_seq_high_and_reserved().to_ne_bytes()[1],
             node.bytes()[0],
@@ -39,8 +39,8 @@ mod tests {
     use super::*;
 
     #[test]
-    fn uuid_with_predefined_ts() {
-        let layout = UUID::v1(Timestamp(1234_5678_u64), MacAddress::new([u8::MAX; 6]));
+    fn uuid_with_predefined_timestamp() {
+        let layout = UUID::v1(Timestamp(1234_5678_u64), MacAddress::new([u8::MIN; 6]));
 
         assert_eq!(layout.get_timestamp(), 1234_5678_u64);
         assert_eq!(layout.get_version(), Ok(Version::TIME));

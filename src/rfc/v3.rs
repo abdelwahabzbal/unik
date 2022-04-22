@@ -16,7 +16,7 @@ impl UUID {
             hash[4],
             hash[5],
             hash[6],
-            Version::MD5,
+            (Version::MD5 as u8) << 4,
             hash[8],
             hash[9],
             hash[10],
