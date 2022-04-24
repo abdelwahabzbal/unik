@@ -22,15 +22,15 @@ impl UUID {
         };
 
         layout!(
-            id.to_ne_bytes()[0],
-            id.to_ne_bytes()[1],
-            id.to_ne_bytes()[2],
-            id.to_ne_bytes()[3],
-            time.0.to_ne_bytes()[0],
-            time.0.to_ne_bytes()[1],
-            time.0.to_ne_bytes()[2],
+            id.to_le_bytes()[0],
+            id.to_le_bytes()[1],
+            id.to_le_bytes()[2],
+            id.to_le_bytes()[3],
+            time.0.to_le_bytes()[0],
+            time.0.to_le_bytes()[1],
+            time.0.to_le_bytes()[2],
             (Version::DCE as u8) << 4,
-            crate::clock_seq_high_and_reserved().to_ne_bytes()[0],
+            crate::clock_seq_high_and_reserved().to_le_bytes()[0],
             domain as u8,
             node.bytes()[0],
             node.bytes()[1],

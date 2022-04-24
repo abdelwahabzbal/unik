@@ -2,7 +2,7 @@ use crate::{get_random, layout, Layout, MacAddress, Variant, Version, UUID};
 
 impl UUID {
     pub fn v4() -> Layout {
-        let rand = get_random().to_ne_bytes();
+        let rand = get_random().to_le_bytes();
         layout!(
             rand[0],
             rand[1],
@@ -31,7 +31,6 @@ mod tests {
     #[test]
     fn uuid_from_random() {
         let uuid = UUID::v4();
-
         assert_eq!(uuid.get_version(), Ok(Version::RAND));
         assert_eq!(uuid.get_variant(), Ok(Variant::RFC));
     }

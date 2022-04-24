@@ -42,14 +42,14 @@ impl Layout {
     /// Returns the five fields of `UUID`.
     pub fn as_fields(&self) -> (u32, u16, u16, u16, u64) {
         (
-            u32::from_ne_bytes(self.field_low.to_ne_bytes()),
-            u16::from_ne_bytes(self.field_mid.to_ne_bytes()),
-            u16::from_ne_bytes(self.field_high_and_version.to_ne_bytes()),
-            u16::from_ne_bytes(
+            u32::from_le_bytes(self.field_low.to_le_bytes()),
+            u16::from_le_bytes(self.field_mid.to_le_bytes()),
+            u16::from_le_bytes(self.field_high_and_version.to_le_bytes()),
+            u16::from_le_bytes(
                 ((self.clock_seq_high_and_reserved as u16) << 8 | self.clock_seq_low as u16)
-                    .to_ne_bytes(),
+                    .to_le_bytes(),
             ),
-            u64::from_ne_bytes([
+            u64::from_le_bytes([
                 (self.node.bytes()[0]),
                 (self.node.bytes()[1]),
                 (self.node.bytes()[2]),
@@ -67,14 +67,14 @@ impl Layout {
     /// Returns the memory representation of `UUID` in native byte order.
     pub fn generate(&self) -> UUID {
         UUID([
-            self.field_low.to_ne_bytes()[0],
-            self.field_low.to_ne_bytes()[1],
-            self.field_low.to_ne_bytes()[2],
-            self.field_low.to_ne_bytes()[3],
-            self.field_mid.to_ne_bytes()[0],
-            self.field_mid.to_ne_bytes()[1],
-            self.field_high_and_version.to_ne_bytes()[0],
-            self.field_high_and_version.to_ne_bytes()[1],
+            self.field_low.to_le_bytes()[3],
+            self.field_low.to_le_bytes()[2],
+            self.field_low.to_le_bytes()[1],
+            self.field_low.to_le_bytes()[0],
+            self.field_mid.to_le_bytes()[1],
+            self.field_mid.to_le_bytes()[0],
+            self.field_high_and_version.to_le_bytes()[1],
+            self.field_high_and_version.to_le_bytes()[0],
             self.clock_seq_high_and_reserved,
             self.clock_seq_low,
             self.node.bytes()[0],
@@ -88,7 +88,7 @@ impl Layout {
 
     /// Get version of the current generated `UUID`.
     pub const fn get_version(&self) -> Result<Version, &str> {
-        match (self.field_high_and_version) >> 0xc {
+        match (self.field_high_and_version) >> 12 {
             0x1 => Ok(Version::TIME),
             0x2 => Ok(Version::DCE),
             0x3 => Ok(Version::MD5),
