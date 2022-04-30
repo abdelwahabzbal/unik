@@ -50,7 +50,7 @@ mod tests {
     fn uuid_with_domain() {
         let layout = UUID::v2(
             Timestamp::from_utc(),
-            MacAddress::new([u8::MAX; 6]),
+            MacAddress::new([u8::MIN; 6]),
             Domain::PERSON,
         );
 

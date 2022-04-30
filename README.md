@@ -19,7 +19,9 @@ unik = { version = "*", features = ["v4"] }
 
 ## Usage
 ```Rust
-println!("{:x}", unik::UUID::v4().generate());
+fn main() {
+    println!("{:x}", unik::UUID::v4().generate());
+}
 ```
 
 ## Security
