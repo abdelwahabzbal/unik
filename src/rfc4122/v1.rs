@@ -1,9 +1,9 @@
 use mac_address::MacAddress;
 
-use crate::{layout, Layout, Timestamp, Variant, Version, UUID};
+use crate::{layout, Layout, TimeStamp, Variant, Version, UUID};
 
 impl Layout {
-    /// Get timestamp where `UUID` generated in.
+    /// Returns integral number of `Timestamp` where `UUID` generated in.
     pub fn get_timestamp(&self) -> u64 {
         self.field_low as u64
             | (self.field_mid as u64) << 32
@@ -12,7 +12,8 @@ impl Layout {
 }
 
 impl UUID {
-    pub fn v1(time: Timestamp, node: MacAddress) -> Layout {
+    /// Returns the `Layout` for `UUID` generated from `MacAddress` and `Timestamp`.
+    pub fn v1(time: TimeStamp, node: MacAddress) -> Layout {
         layout!(
             time.0.to_le_bytes()[0],
             time.0.to_le_bytes()[1],
@@ -40,7 +41,7 @@ mod tests {
 
     #[test]
     fn uuid_with_predef_timestamp() {
-        let layout = UUID::v1(Timestamp(1234_5678_u64), MacAddress::new([u8::MIN; 6]));
+        let layout = UUID::v1(TimeStamp(1234_5678_u64), MacAddress::new([u8::MIN; 6]));
         assert_eq!(layout.get_timestamp(), 1234_5678_u64);
         assert_eq!(layout.get_version(), Ok(Version::TIME));
         assert_eq!(layout.get_variant(), Ok(Variant::RFC));
@@ -48,7 +49,7 @@ mod tests {
 
     #[test]
     fn get_timestamp_from_parsed_string() {
-        let layout = UUID::v1(Timestamp(1234_5678_u64), MacAddress::new([u8::MIN; 6]));
+        let layout = UUID::v1(TimeStamp(1234_5678_u64), MacAddress::new([u8::MIN; 6]));
 
         assert_eq!(
             1234_5678_u64,

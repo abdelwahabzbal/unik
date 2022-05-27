@@ -3,6 +3,7 @@ use sha1::Sha1;
 use crate::{layout, Layout, MacAddress, Variant, Version, UUID};
 
 impl UUID {
+    /// Create `UUID` by hashing a namespace identifier and name using MD5 algorithm.
     pub fn v3<'a>(data: &str, ns: UUID) -> Layout {
         let hash: [u8; 16] = Sha1::from(format!("{:x}", ns) + data).digest().bytes()[..16]
             .try_into()
@@ -36,7 +37,12 @@ mod tests {
 
     #[test]
     fn uuid_using_hash_sha1() {
-        let namespace = [UUID::DNS, UUID::OID, UUID::URL, UUID::X500];
+        let namespace = [
+            UUID::NAMESPACE_DNS,
+            UUID::NAMESPACE_OID,
+            UUID::NAMESPACE_URL,
+            UUID::NAMESPACE_X500,
+        ];
 
         for &ns in namespace.iter() {
             assert_eq!(UUID::v3("test", ns).get_version(), Ok(Version::MD5));

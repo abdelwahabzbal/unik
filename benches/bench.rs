@@ -12,18 +12,18 @@ use test::Bencher;
 
 use mac_address::MacAddress;
 
-use unik::{self, rfc::v2::Domain, *};
+use unik::{self, rfc4122::v2::Domain, *};
 
 #[bench]
 fn new_uuid_v1(b: &mut Bencher) {
-    b.iter(|| UUID::v1(Timestamp(1234_5678), MacAddress::new([u8::MAX; 6])).generate());
+    b.iter(|| UUID::v1(TimeStamp(1234_5678), MacAddress::new([u8::MAX; 6])).generate());
 }
 
 #[bench]
 fn new_uuid_v2(b: &mut Bencher) {
     b.iter(|| {
         UUID::v2(
-            unik::Timestamp::from_utc(),
+            unik::TimeStamp::from_utc(),
             MacAddress::new([u8::MAX; 6]),
             Domain::PERSON,
         )
@@ -33,7 +33,7 @@ fn new_uuid_v2(b: &mut Bencher) {
 
 #[bench]
 fn new_uuid_v3(b: &mut Bencher) {
-    b.iter(|| UUID::v3("test", UUID::DNS).generate());
+    b.iter(|| UUID::v3("test", UUID::NAMESPACE_DNS).generate());
 }
 
 #[bench]
@@ -43,5 +43,5 @@ fn new_uuid_v4(b: &mut Bencher) {
 
 #[bench]
 fn new_uuid_v5(b: &mut Bencher) {
-    b.iter(|| UUID::v5("test", UUID::X500).generate());
+    b.iter(|| UUID::v5("test", UUID::NAMESPACE_X500).generate());
 }

@@ -1,6 +1,7 @@
 use crate::{get_random, layout, Layout, MacAddress, Variant, Version, UUID};
 
 impl UUID {
+    /// Create a random `UUID`.
     pub fn v4() -> Layout {
         let rand = get_random().to_le_bytes();
         layout!(

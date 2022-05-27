@@ -1,4 +1,4 @@
-use crate::{layout, Layout, MacAddress, Timestamp, Variant, Version, UUID};
+use crate::{layout, Layout, MacAddress, TimeStamp, Variant, Version, UUID};
 
 #[derive(Debug, Copy, Clone)]
 pub enum Domain {
@@ -7,7 +7,8 @@ pub enum Domain {
 }
 
 impl UUID {
-    pub fn v2(time: Timestamp, node: MacAddress, domain: Domain) -> Layout {
+    /// Create `UUID` from a domain and a name.
+    pub fn v2(time: TimeStamp, node: MacAddress, domain: Domain) -> Layout {
         let id = {
             #[cfg(all(windows))]
             unsafe {
@@ -49,7 +50,7 @@ mod tests {
     #[test]
     fn uuid_with_domain() {
         let layout = UUID::v2(
-            Timestamp::from_utc(),
+            TimeStamp::from_utc(),
             MacAddress::new([u8::MIN; 6]),
             Domain::PERSON,
         );

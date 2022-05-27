@@ -8,7 +8,7 @@
 #![doc(html_root_url = "https://docs.rs/unik")]
 #![feature(doc_cfg)]
 
-pub mod rfc;
+pub mod rfc4122;
 
 use core::fmt;
 use std::sync::atomic::{self, AtomicU16};
@@ -24,11 +24,11 @@ pub type Node = MacAddress;
 /// The simplified version of `UUID` in terms of fields that are integral numbers of octets.
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub struct Layout {
-    /// The low field of the Timestamp.
+    /// The low field of the TimeStamp.
     field_low: u32,
-    /// The mid field of the Timestamp.
+    /// The mid field of the TimeStamp.
     field_mid: u16,
-    /// The high field of the Timestamp multiplexed with the version number.
+    /// The high field of the TimeStamp multiplexed with the version number.
     field_high_and_version: u16,
     /// The high field of the ClockSeq multiplexed with the variant.
     clock_seq_high_and_reserved: u8,
@@ -40,6 +40,12 @@ pub struct Layout {
 
 impl Layout {
     /// Returns the five fields of `UUID`.
+    ///
+    /// * 1st field: Low field of the TimeStamp.
+    /// * 2nd field: Mid field of the TimeStamp.
+    /// * 3rd field: High field of the TimeStamp multiplexed with the version number.
+    /// * 4th field: ClockSeq multiplexed with the variant.
+    /// * 5th field: An IEEE-802 network address.
     pub fn as_fields(&self) -> (u32, u16, u16, u16, u64) {
         (
             u32::from_le_bytes(self.field_low.to_le_bytes()),
@@ -64,7 +70,7 @@ impl Layout {
         )
     }
 
-    /// Returns the memory representation of `UUID` in native byte order.
+    /// Returns the memory representation of `UUID`.
     pub fn generate(&self) -> UUID {
         UUID([
             self.field_low.to_le_bytes()[3],
@@ -86,7 +92,7 @@ impl Layout {
         ])
     }
 
-    /// Get version of the current generated `UUID`.
+    /// Returns the algorithm number of `UUID`.
     pub const fn get_version(&self) -> Result<Version, &str> {
         match (self.field_high_and_version) >> 12 {
             0x1 => Ok(Version::TIME),
@@ -98,7 +104,7 @@ impl Layout {
         }
     }
 
-    /// Get variant of the current generated `UUID`.
+    /// Returns the type field of `UUID`.
     pub const fn get_variant(&self) -> Result<Variant, &str> {
         match self.clock_seq_high_and_reserved >> 0x4 {
             0x0 => Ok(Variant::NCS),
@@ -118,31 +124,31 @@ pub type Bytes = [u8; 16];
 pub struct UUID(Bytes);
 
 impl UUID {
-    /// Return the memory representation of `UUID`.
+    /// Returns the memory representation of `UUID`.
     pub const fn as_bytes(&self) -> [u8; 16] {
         self.0
     }
 
     /// UUID namespace for domain name system (DNS).
-    pub const DNS: UUID = UUID([
+    pub const NAMESPACE_DNS: UUID = UUID([
         0x6b, 0xa7, 0xb8, 0x10, 0x9d, 0xad, 0x11, 0xd1, 0x80, 0xb4, 0x00, 0xc0, 0x4f, 0xd4, 0x30,
         0xc8,
     ]);
 
     /// UUID namespace for ISO object identifiers (OIDs).
-    pub const OID: UUID = UUID([
+    pub const NAMESPACE_OID: UUID = UUID([
         0x6b, 0xa7, 0xb8, 0x12, 0x9d, 0xad, 0x11, 0xd1, 0x80, 0xb4, 0x00, 0xc0, 0x4f, 0xd4, 0x30,
         0xc8,
     ]);
 
     /// UUID namespace for uniform resource locators (URLs).
-    pub const URL: UUID = UUID([
+    pub const NAMESPACE_URL: UUID = UUID([
         0x6b, 0xa7, 0xb8, 0x11, 0x9d, 0xad, 0x11, 0xd1, 0x80, 0xb4, 0x00, 0xc0, 0x4f, 0xd4, 0x30,
         0xc8,
     ]);
 
     /// UUID namespace for X.500 distinguished names (DNs).
-    pub const X500: UUID = UUID([
+    pub const NAMESPACE_X500: UUID = UUID([
         0x6b, 0xa7, 0xb8, 0x14, 0x9d, 0xad, 0x11, 0xd1, 0x80, 0xb4, 0x00, 0xc0, 0x4f, 0xd4, 0x30,
         0xc8,
     ]);
@@ -249,7 +255,8 @@ impl fmt::UpperHex for UUID {
     }
 }
 
-/// Version represents the type of UUID, and is in the most significant 4 bits of the Timestamp.
+/// Represents the algorithm use for building the `Layout`, located in the most
+/// significant 4 bits of `TimeStamp`.
 #[derive(Debug, Eq, PartialEq, Clone, Copy)]
 pub enum Version {
     /// The time-based version specified in `rfc4122` document.
@@ -264,7 +271,7 @@ pub enum Version {
     SHA1,
 }
 
-/// Variant is a type field determines the layout of the UUID.
+/// Is a type field determines the layout of `UUID`.
 #[derive(Debug, Eq, PartialEq, Clone, Copy)]
 pub enum Variant {
     /// Reserved, NCS backward compatibility.
@@ -277,20 +284,20 @@ pub enum Variant {
     FUT,
 }
 
-/// Represented by Coordinated Universal Time (UTC).
+/// Is a 60-bit value. Represented by Coordinated Universal Time (UTC).
 ///
-/// NOTE: `Timestamp` used as a `u64`. For this reason,
-/// dates prior to gregorian calendar are not supported.
+/// NOTE: `TimeStamp` used as a `u64`. For this reason, dates prior to gregorian
+/// calendar are not supported.
 #[derive(Clone, Copy)]
-pub struct Timestamp(pub u64);
+pub struct TimeStamp(pub u64);
 
-impl Timestamp {
+impl TimeStamp {
     pub fn from_utc() -> Self {
-        Timestamp(Utc::now().timestamp_nanos() as u64)
+        TimeStamp(Utc::now().timestamp_nanos() as u64)
     }
 
     pub fn from_unix() -> Self {
-        Timestamp(
+        TimeStamp(
             Utc::now()
                 .checked_sub_signed(chrono::Duration::nanoseconds(0x01B2_1DD2_1381_4000))
                 .unwrap()
