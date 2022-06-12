@@ -342,7 +342,6 @@ macro_rules! layout {
 
 #[cfg(test)]
 mod tests {
-
     use super::*;
 
     #[test]

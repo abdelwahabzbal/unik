@@ -3,7 +3,7 @@ use sha1::Sha1;
 use crate::{layout, Layout, MacAddress, Variant, Version, UUID};
 
 impl UUID {
-    /// Create `UUID` by hashing a namespace identifier and name using MD5 algorithm.
+    /// Creates `UUID` by hashing a namespace identifier and name using MD5 algorithm.
     pub fn v3<'a>(data: &str, ns: UUID) -> Layout {
         let hash: [u8; 16] = Sha1::from(format!("{:x}", ns) + data).digest().bytes()[..16]
             .try_into()
@@ -32,7 +32,6 @@ impl UUID {
 
 #[cfg(test)]
 mod tests {
-
     use super::*;
 
     #[test]

@@ -7,7 +7,7 @@ pub enum Domain {
 }
 
 impl UUID {
-    /// Create `UUID` from a domain and a name.
+    /// Creates `UUID` from a domain and a name.
     pub fn v2(time: TimeStamp, node: MacAddress, domain: Domain) -> Layout {
         let id = {
             #[cfg(all(windows))]
