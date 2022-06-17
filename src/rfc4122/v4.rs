@@ -1,4 +1,7 @@
-use crate::{get_random, layout, Layout, MacAddress, Variant, Version, UUID};
+use crate::{layout, Layout, MacAddress, Variant, Version, UUID};
+
+use crate::ClockSeq;
+use nanorand::{Rng, WyRand};
 
 impl UUID {
     /// Creates a random `UUID`.
@@ -23,6 +26,10 @@ impl UUID {
             rand[15]
         )
     }
+}
+
+pub(crate) fn get_random() -> u128 {
+    WyRand::new().generate::<u128>()
 }
 
 #[cfg(test)]

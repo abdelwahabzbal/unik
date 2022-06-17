@@ -4,7 +4,7 @@
 //! This lib can be used to create unique and reasonably short
 //! values without requiring extra knowledge.
 //!
-//! A UUID is 128 bits long, and can guarantee uniqueness across space and time.
+//! A `UUID` is 128 bits long, and can guarantee uniqueness across space and time.
 #![doc(html_root_url = "https://docs.rs/unik")]
 #![feature(doc_cfg)]
 
@@ -13,13 +13,17 @@ pub mod rfc4122;
 use core::fmt;
 use std::sync::atomic::{self, AtomicU16};
 
-use chrono::Utc;
-use nanorand::{Rng, WyRand};
-
 pub use mac_address::{get_mac_address, MacAddress};
 
 /// Represent bytes of MAC address.
 pub type Node = MacAddress;
+
+/// Is a 60-bit value. Represented by Coordinated Universal Time (UTC).
+///
+/// NOTE: `TimeStamp` used as a `u64`. For this reason dates prior to gregorian
+/// calendar are not supported.
+#[derive(Debug, Clone, Copy)]
+pub struct TimeStamp(pub u64);
 
 /// The simplified version of `UUID` in terms of fields that are integral numbers of octets.
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
@@ -39,35 +43,24 @@ pub struct Layout {
 }
 
 impl Layout {
-    /// Returns the five fields of `UUID`.
-    ///
-    /// * 1st field: Low field of the TimeStamp.
-    /// * 2nd field: Mid field of the TimeStamp.
-    /// * 3rd field: High field of the TimeStamp multiplexed with the version number.
-    /// * 4th field: ClockSeq multiplexed with the variant.
-    /// * 5th field: An IEEE-802 network address.
-    pub fn as_fields(&self) -> (u32, u16, u16, u16, u64) {
-        (
-            u32::from_le_bytes(self.field_low.to_le_bytes()),
-            u16::from_le_bytes(self.field_mid.to_le_bytes()),
-            u16::from_le_bytes(self.field_high_and_version.to_le_bytes()),
-            u16::from_le_bytes(
-                ((self.clock_seq_high_and_reserved as u16) << 8 | self.clock_seq_low as u16)
-                    .to_le_bytes(),
-            ),
-            u64::from_le_bytes([
-                (self.node.bytes()[0]),
-                (self.node.bytes()[1]),
-                (self.node.bytes()[2]),
-                (self.node.bytes()[3]),
-                (self.node.bytes()[4]),
-                (self.node.bytes()[5]),
-                /* Make `from_ne_bytes` method happy
-                 */
-                0,
-                0,
+    // Returns `Layout` from sequence of integral numbers.
+    pub fn from_bytes(bytes: Bytes) -> Layout {
+        let field_low = u32::from_le_bytes([bytes[3], bytes[2], bytes[1], bytes[0]]);
+        let field_mid = u16::from_le_bytes([bytes[5], bytes[4]]);
+        let field_high_and_version = u16::from_le_bytes([bytes[7], bytes[6]]);
+        let clock_seq_high_and_reserved = bytes[8];
+        let clock_seq_low = bytes[9];
+
+        Layout {
+            field_low,
+            field_mid,
+            field_high_and_version,
+            clock_seq_high_and_reserved,
+            clock_seq_low,
+            node: MacAddress::new([
+                bytes[10], bytes[11], bytes[12], bytes[13], bytes[14], bytes[15],
             ]),
-        )
+        }
     }
 
     /// Returns the memory representation of `UUID`.
@@ -255,8 +248,8 @@ impl fmt::UpperHex for UUID {
     }
 }
 
-/// Represents the algorithm use for building the `Layout`, located in the most
-/// significant 4 bits of `TimeStamp`.
+/// Represents the algorithm use for building the `Layout`, located in
+/// the most significant 4 bits of `TimeStamp`.
 #[derive(Debug, Eq, PartialEq, Clone, Copy)]
 pub enum Version {
     /// The time-based version specified in `rfc4122` document.
@@ -267,8 +260,20 @@ pub enum Version {
     MD5,
     /// The randomly or pseudo-randomly generated version specified in `rfc4122` document.
     RAND,
-    /// The name-based version specified in `rfc4122`document that uses SHA-1 hashing.
+    /// The name-based version specified in `rfc4122`document that uses SHA1 hashing.
     SHA1,
+}
+
+impl std::string::ToString for Version {
+    fn to_string(&self) -> String {
+        match self {
+            Version::TIME => "TIME".to_owned(),
+            Version::DCE => "DCE".to_owned(),
+            Version::MD5 => "MD5".to_owned(),
+            Version::RAND => "RAND".to_owned(),
+            Version::SHA1 => "SHA1".to_owned(),
+        }
+    }
 }
 
 /// Is a type field determines the layout of `UUID`.
@@ -284,25 +289,14 @@ pub enum Variant {
     FUT,
 }
 
-/// Is a 60-bit value. Represented by Coordinated Universal Time (UTC).
-///
-/// NOTE: `TimeStamp` used as a `u64`. For this reason, dates prior to gregorian
-/// calendar are not supported.
-#[derive(Clone, Copy)]
-pub struct TimeStamp(pub u64);
-
-impl TimeStamp {
-    pub fn from_utc() -> Self {
-        TimeStamp(Utc::now().timestamp_nanos() as u64)
-    }
-
-    pub fn from_unix() -> Self {
-        TimeStamp(
-            Utc::now()
-                .checked_sub_signed(chrono::Duration::nanoseconds(0x01B2_1DD2_1381_4000))
-                .unwrap()
-                .timestamp_nanos() as u64,
-        )
+impl std::string::ToString for Variant {
+    fn to_string(&self) -> String {
+        match self {
+            Variant::NCS => "NCS".to_owned(),
+            Variant::RFC => "RFC".to_owned(),
+            Variant::MS => "MS".to_owned(),
+            Variant::FUT => "FUT".to_owned(),
+        }
     }
 }
 
@@ -313,14 +307,6 @@ impl ClockSeq {
     pub fn new(rand: u16) -> u16 {
         AtomicU16::new(rand).fetch_add(1, atomic::Ordering::SeqCst)
     }
-}
-
-pub(crate) fn clock_seq_high_and_reserved() -> u16 {
-    ClockSeq::new(WyRand::new().generate::<u16>())
-}
-
-pub(crate) fn get_random() -> u128 {
-    WyRand::new().generate::<u128>()
 }
 
 #[macro_export]
