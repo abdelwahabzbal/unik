@@ -35,10 +35,11 @@ impl Layout {
 impl UUID {
     /// Creates `UUID` from a `Domain` and ID.
     pub fn v2(domain: Domain, id: u32) -> Layout {
-        let sysid = {
+        let systemid = {
             #[cfg(all(windows))]
-            unsafe {
-                libc::getpid() as u32
+            match domain {
+                Domain::PERSON | Domain::GROUP => unsafe { libc::getpid() },
+                Domain::ORG => id,
             }
 
             #[cfg(all(unix))]
@@ -54,7 +55,7 @@ impl UUID {
             .generate()
             .as_bytes();
 
-        uuid[0..4].copy_from_slice(&sysid);
+        uuid[0..4].copy_from_slice(&systemid);
         uuid[6] = (Version::DCE as u8) << 4;
         uuid[9] = domain as u8;
 
