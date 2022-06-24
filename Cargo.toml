@@ -42,7 +42,7 @@ version = "0.6.0"
 optional = true
 
 [features]
-default = ["v2"]
+default = []
 v2 = ["libc"]
 v3 = ["sha1"]
 v5 = ["md5"]
