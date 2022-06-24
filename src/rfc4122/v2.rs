@@ -34,7 +34,7 @@ impl Layout {
 
 impl UUID {
     /// Creates `UUID` from a `Domain` and ID.
-    pub fn v2(domain: Domain, id: u32) -> Layout {
+    pub fn v2(domain: Domain, id: Option<u32>) -> Layout {
         let systemid = {
             #[cfg(all(windows))]
             match domain {
@@ -46,7 +46,7 @@ impl UUID {
             match domain {
                 Domain::PERSON => unsafe { libc::getuid() },
                 Domain::GROUP => unsafe { libc::getgid() },
-                Domain::ORG => id,
+                Domain::ORG => id.unwrap(),
             }
         }
         .to_be_bytes();
@@ -70,7 +70,7 @@ mod tests {
 
     #[test]
     fn uuid_with_domain() {
-        let layout = UUID::v2(Domain::ORG, 1234);
+        let layout = UUID::v2(Domain::ORG, Some(1234));
         assert_eq!(layout.get_version(), Ok(Version::DCE));
         assert_eq!(layout.get_variant(), Ok(Variant::RFC4122));
         assert_eq!(layout.get_domain(), Ok(Domain::ORG));
