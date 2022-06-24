@@ -39,7 +39,7 @@ impl UUID {
             #[cfg(all(windows))]
             match domain {
                 Domain::PERSON | Domain::GROUP => unsafe { libc::getpid() },
-                Domain::ORG => id,
+                Domain::ORG => id as i32,
             }
 
             #[cfg(all(unix))]
