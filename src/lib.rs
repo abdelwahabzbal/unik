@@ -1,8 +1,8 @@
 //! This crate defines a powerful uniform resource name namespace for UUIDs
 //! (Universally Unique Identifier), which are suited for modern use.
 //!
-//! This lib can be used to create unique and reasonably short
-//! values without requiring extra knowledge.
+//! This lib can be used to create unique and reasonably short values without
+//! requiring extra knowledge.
 //!
 //! A `UUID` is 128 bits long, and can guarantee uniqueness across space and time.
 #![doc(html_root_url = "https://docs.rs/unik")]
@@ -101,7 +101,7 @@ impl Layout {
     pub const fn get_variant(&self) -> Result<Variant, &str> {
         match self.clock_seq_high_and_reserved >> 0x4 {
             0x0 => Ok(Variant::NCS),
-            0x1 => Ok(Variant::RFC),
+            0x1 => Ok(Variant::RFC4122),
             0x2 => Ok(Variant::MS),
             0x3 => Ok(Variant::FUT),
             _ => Err("Invalid variant"),
@@ -282,7 +282,7 @@ pub enum Variant {
     /// Reserved, NCS backward compatibility.
     NCS = 0,
     /// The variant specified in `rfc4122` document.
-    RFC,
+    RFC4122,
     /// Reserved, Microsoft Corporation backward compatibility.
     MS,
     /// Reserved for future definition.
@@ -293,7 +293,7 @@ impl std::string::ToString for Variant {
     fn to_string(&self) -> String {
         match self {
             Variant::NCS => "NCS".to_owned(),
-            Variant::RFC => "RFC".to_owned(),
+            Variant::RFC4122 => "RFC".to_owned(),
             Variant::MS => "MS".to_owned(),
             Variant::FUT => "FUT".to_owned(),
         }
@@ -319,7 +319,7 @@ macro_rules! layout {
             field_low: $b0 as u32 | ($b1 as u32) << 8 | ($b2 as u32) << 16 | ($b3 as u32) << 24,
             field_mid: ($b4 as u16) | (($b5 as u16) << 8),
             field_high_and_version: ($b6 as u16) | ($b7 as u16) << 8,
-            clock_seq_high_and_reserved: ($b8 & 0xf) as u8 | (Variant::RFC as u8) << 4,
+            clock_seq_high_and_reserved: ($b8 & 0xf) as u8 | (Variant::RFC4122 as u8) << 4,
             clock_seq_low: $b9,
             node: MacAddress::new([$b10, $b11, $b12, $b13, $b14, $b15]),
         }
@@ -338,69 +338,20 @@ mod tests {
 
     #[test]
     fn parse_string() {
-        assert_eq!(
-            Ok(Version::TIME),
-            UUID::from_str("ab720268-b83f-11ec-b909-0242ac120002")
-                .unwrap()
-                .get_version()
-        );
-        assert_eq!(
-            Ok(Variant::RFC),
-            UUID::from_str("ab720268b83f11ecb9090242ac120002")
-                .unwrap()
-                .get_variant()
-        );
+        let cols = [
+            ("ab720268-b83f-11ec-b909-0242ac120002", Version::TIME),
+            ("000003e8-c22b-21ec-bd01-d4bed9408ecc", Version::DCE),
+            ("2448bd95-00ca-3650-160f-3301a691b26c", Version::MD5),
+            ("6a665038-24cf-4cf6-9b61-05f0c2fc6c08", Version::RAND),
+            ("991da866-83b0-5550-1bef-37a1a5b1fb30", Version::SHA1),
+        ];
 
-        assert_eq!(
-            Ok(Version::DCE),
-            UUID::from_str("000003e8-c22b-21ec-bd01-d4bed9408ecc")
-                .unwrap()
-                .get_version()
-        );
-        assert_eq!(
-            Ok(Variant::RFC),
-            UUID::from_str("000003e8c22a21ecb600d4bed9408ecc")
-                .unwrap()
-                .get_variant()
-        );
-
-        assert_eq!(
-            Ok(Version::MD5),
-            UUID::from_str("2448bd95-00ca-3650-160f-3301a691b26c")
-                .unwrap()
-                .get_version()
-        );
-        assert_eq!(
-            Ok(Variant::RFC),
-            UUID::from_str("2448bd9500ca3650160f3301a691b26c")
-                .unwrap()
-                .get_variant(),
-        );
-
-        assert_eq!(
-            Ok(Version::RAND),
-            UUID::from_str("6a665038-24cf-4cf6-9b61-05f0c2fc6c08")
-                .unwrap()
-                .get_version()
-        );
-        assert_eq!(
-            Ok(Variant::RFC),
-            UUID::from_str("6a66503824cf4cf69b6105f0c2fc6c08")
-                .unwrap()
-                .get_variant()
-        );
-
-        assert_eq!(
-            Ok(Version::SHA1),
-            UUID::from_str("991da866-83b0-5550-1bef-37a1a5b1fb30")
-                .unwrap()
-                .get_version()
-        );
-        assert_eq!(
-            Ok(Variant::RFC),
-            UUID::from_str("991da86683b055501bef37a1a5b1fb30")
-                .unwrap()
-                .get_variant()
-        );
+        for item in cols {
+            assert_eq!(UUID::from_str(item.0).unwrap().get_version(), Ok(item.1));
+            assert_eq!(
+                UUID::from_str(item.0).unwrap().get_variant(),
+                Ok(Variant::RFC4122)
+            );
+        }
     }
 }

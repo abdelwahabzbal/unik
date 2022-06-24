@@ -1,6 +1,5 @@
 use crate::{layout, Layout, MacAddress, Variant, Version, UUID};
 
-use crate::ClockSeq;
 use nanorand::{Rng, WyRand};
 
 impl UUID {
@@ -40,6 +39,6 @@ mod tests {
     fn uuid_from_random() {
         let uuid = UUID::v4();
         assert_eq!(uuid.get_version(), Ok(Version::RAND));
-        assert_eq!(uuid.get_variant(), Ok(Variant::RFC));
+        assert_eq!(uuid.get_variant(), Ok(Variant::RFC4122));
     }
 }

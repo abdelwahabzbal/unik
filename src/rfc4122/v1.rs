@@ -87,7 +87,7 @@ mod tests {
         let layout = UUID::v1(TimeStamp(1234_5678_u64), MacAddress::new([u8::MIN; 6]));
         assert_eq!(layout.get_timestamp(), 1234_5678_u64);
         assert_eq!(layout.get_version(), Ok(Version::TIME));
-        assert_eq!(layout.get_variant(), Ok(Variant::RFC));
+        assert_eq!(layout.get_variant(), Ok(Variant::RFC4122));
     }
 
     #[test]
@@ -107,7 +107,7 @@ mod tests {
         let layout = UUID::v1(TimeStamp(1234_5678_u64), MacAddress::new([u8::MIN; 6])).generate();
         let layout = Layout::from_bytes(layout.0);
         assert_eq!(layout.get_version(), Ok(Version::TIME));
-        assert_eq!(layout.get_variant(), Ok(Variant::RFC));
+        assert_eq!(layout.get_variant(), Ok(Variant::RFC4122));
         assert_eq!(layout.get_timestamp(), 1234_5678_u64);
         assert_eq!(layout.node, MacAddress::new([u8::MIN; 6]));
     }

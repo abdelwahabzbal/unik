@@ -3,7 +3,7 @@
     feature = "v1",
     feature = "v2",
     feature = "v3",
-    feature = "v4",
+    // feature = "v4",
     feature = "v5",
 ))]
 
@@ -21,19 +21,12 @@ fn new_uuid_v1(b: &mut Bencher) {
 
 #[bench]
 fn new_uuid_v2(b: &mut Bencher) {
-    b.iter(|| {
-        UUID::v2(
-            unik::TimeStamp::from_utc(),
-            MacAddress::new([u8::MAX; 6]),
-            Domain::PERSON,
-        )
-        .generate()
-    });
+    b.iter(|| UUID::v2(Domain::PERSON, 1234).generate());
 }
 
 #[bench]
 fn new_uuid_v3(b: &mut Bencher) {
-    b.iter(|| UUID::v3("test", UUID::NAMESPACE_DNS).generate());
+    b.iter(|| UUID::v3("bench", UUID::NAMESPACE_DNS).generate());
 }
 
 #[bench]
@@ -43,5 +36,5 @@ fn new_uuid_v4(b: &mut Bencher) {
 
 #[bench]
 fn new_uuid_v5(b: &mut Bencher) {
-    b.iter(|| UUID::v5("test", UUID::NAMESPACE_X500).generate());
+    b.iter(|| UUID::v5("bench", UUID::NAMESPACE_X500).generate());
 }

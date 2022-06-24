@@ -71,7 +71,7 @@ mod tests {
     fn uuid_with_domain() {
         let layout = UUID::v2(Domain::ORG, 1234);
         assert_eq!(layout.get_version(), Ok(Version::DCE));
-        assert_eq!(layout.get_variant(), Ok(Variant::RFC));
+        assert_eq!(layout.get_variant(), Ok(Variant::RFC4122));
         assert_eq!(layout.get_domain(), Ok(Domain::ORG));
         assert_eq!(layout.get_id(), 1234);
     }

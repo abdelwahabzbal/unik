@@ -45,7 +45,7 @@ mod tests {
 
         for &ns in namespace.iter() {
             assert_eq!(UUID::v3("test", ns).get_version(), Ok(Version::MD5));
-            assert_eq!(UUID::v3("test", ns).get_variant(), Ok(Variant::RFC));
+            assert_eq!(UUID::v3("test", ns).get_variant(), Ok(Variant::RFC4122));
         }
     }
 }
