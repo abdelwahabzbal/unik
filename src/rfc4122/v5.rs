@@ -32,14 +32,14 @@ mod tests {
 
     #[test]
     fn new_uuid_using_md5() {
-        let namespace = [
+        let nss = [
             UUID::NAMESPACE_DNS,
             UUID::NAMESPACE_OID,
             UUID::NAMESPACE_URL,
             UUID::NAMESPACE_X500,
         ];
 
-        for &ns in namespace.iter() {
+        for &ns in nss.iter() {
             assert_eq!(UUID::v5("test", ns).get_version(), Ok(Version::SHA1));
             assert_eq!(UUID::v5("test", ns).get_variant(), Ok(Variant::RFC4122));
         }

@@ -7,6 +7,7 @@ impl UUID {
     pub fn v4() -> Layout {
         let rand = get_random().to_le_bytes();
         layout!(
+            std::cell::Cell::new(0),
             rand[0],
             rand[1],
             rand[2],
@@ -38,7 +39,7 @@ mod tests {
     #[test]
     fn uuid_from_random() {
         let uuid = UUID::v4();
-        assert_eq!(uuid.get_version(), Ok(Version::RAND));
-        assert_eq!(uuid.get_variant(), Ok(Variant::RFC4122));
+        assert_eq!(uuid.version(), Ok(Version::RAND));
+        assert_eq!(uuid.variant(), Ok(Variant::RFC4122));
     }
 }

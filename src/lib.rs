@@ -5,6 +5,7 @@
 //! requiring extra knowledge.
 //!
 //! A `UUID` is 128 bits long, and can guarantee uniqueness across space and time.
+#![feature(stmt_expr_attributes)]
 #![doc(html_root_url = "https://docs.rs/unik")]
 #![feature(doc_cfg)]
 
@@ -15,15 +16,15 @@ use std::sync::atomic::{self, AtomicU16};
 
 pub use mac_address::{get_mac_address, MacAddress};
 
-/// Represent bytes of MAC address.
+/// Represent bytes of host address.
 pub type Node = MacAddress;
 
 /// Is a 60-bit value. Represented by Coordinated Universal Time (UTC).
 ///
 /// NOTE: `TimeStamp` used as a `u64`. For this reason dates prior to gregorian
 /// calendar are not supported.
-#[derive(Debug, Clone, Copy)]
-pub struct TimeStamp(pub u64);
+#[derive(Debug, Clone)]
+pub struct TimeStamp(u64);
 
 /// The simplified version of `UUID` in terms of fields that are integral numbers of octets.
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
@@ -39,24 +40,21 @@ pub struct Layout {
     /// The low field of the ClockSeq.
     clock_seq_low: u8,
     /// IEEE-802 network address.
-    node: Node,
+    pub node: Node,
 }
 
 impl Layout {
-    // Returns `Layout` from sequence of integral numbers.
-    pub fn from_bytes(bytes: Bytes) -> Layout {
-        let field_low = u32::from_le_bytes([bytes[3], bytes[2], bytes[1], bytes[0]]);
-        let field_mid = u16::from_le_bytes([bytes[5], bytes[4]]);
-        let field_high_and_version = u16::from_le_bytes([bytes[7], bytes[6]]);
-        let clock_seq_high_and_reserved = bytes[8];
-        let clock_seq_low = bytes[9];
-
+    /// Returns `Layout` from sequence of integral numbers.
+    pub fn from_raw_bytes(bytes: Bytes) -> Layout {
+        let field_low = u32::from_le_bytes([bytes[0], bytes[1], bytes[2], bytes[3]]);
+        let field_mid = u16::from_le_bytes([bytes[4], bytes[5]]);
+        let field_high_and_version = u16::from_le_bytes([bytes[6], bytes[7]]);
         Layout {
             field_low,
             field_mid,
             field_high_and_version,
-            clock_seq_high_and_reserved,
-            clock_seq_low,
+            clock_seq_high_and_reserved: bytes[8],
+            clock_seq_low: bytes[9],
             node: MacAddress::new([
                 bytes[10], bytes[11], bytes[12], bytes[13], bytes[14], bytes[15],
             ]),
@@ -65,29 +63,33 @@ impl Layout {
 
     /// Returns the memory representation of `UUID`.
     pub fn generate(&self) -> UUID {
+        let fl = self.field_low.to_le_bytes();
+        let fm = self.field_mid.to_le_bytes();
+        let fhv = self.field_high_and_version.to_le_bytes();
+        let n = self.node.bytes();
         UUID([
-            self.field_low.to_le_bytes()[3],
-            self.field_low.to_le_bytes()[2],
-            self.field_low.to_le_bytes()[1],
-            self.field_low.to_le_bytes()[0],
-            self.field_mid.to_le_bytes()[1],
-            self.field_mid.to_le_bytes()[0],
-            self.field_high_and_version.to_le_bytes()[1],
-            self.field_high_and_version.to_le_bytes()[0],
+            fl[0],
+            fl[1],
+            fl[2],
+            fl[3],
+            fm[0],
+            fm[1],
+            fhv[0],
+            fhv[1],
             self.clock_seq_high_and_reserved,
             self.clock_seq_low,
-            self.node.bytes()[0],
-            self.node.bytes()[1],
-            self.node.bytes()[2],
-            self.node.bytes()[3],
-            self.node.bytes()[4],
-            self.node.bytes()[5],
+            n[0],
+            n[1],
+            n[2],
+            n[3],
+            n[4],
+            n[5],
         ])
     }
 
     /// Returns the algorithm number of `UUID`.
-    pub const fn get_version(&self) -> Result<Version, &str> {
-        match (self.field_high_and_version) >> 12 {
+    pub const fn version(&self) -> Result<Version, &str> {
+        match self.field_high_and_version >> 0xc {
             0x1 => Ok(Version::TIME),
             0x2 => Ok(Version::DCE),
             0x3 => Ok(Version::MD5),
@@ -98,14 +100,119 @@ impl Layout {
     }
 
     /// Returns the type field of `UUID`.
-    pub const fn get_variant(&self) -> Result<Variant, &str> {
-        match self.clock_seq_high_and_reserved >> 0x4 {
-            0x0 => Ok(Variant::NCS),
-            0x1 => Ok(Variant::RFC4122),
-            0x2 => Ok(Variant::MS),
-            0x3 => Ok(Variant::FUT),
+    pub fn variant(&self) -> Result<Variant, &str> {
+        match (self.clock_seq_high_and_reserved >> 0x5) & 0x7 {
+            0x0..=0x3 => Ok(Variant::NCS),
+            0x5 | 0x4 => Ok(Variant::RFC4122),
+            0x6 => Ok(Variant::MS),
+            0x7 => Ok(Variant::FUT),
             _ => Err("Invalid variant"),
         }
+    }
+}
+
+impl std::convert::Into<Bytes> for Layout {
+    fn into(self) -> Bytes {
+        let fl = self.field_low.to_le_bytes();
+        let fm = self.field_mid.to_le_bytes();
+        let fhv = self.field_high_and_version.to_le_bytes();
+        let n = self.node.bytes();
+        [
+            fl[0],
+            fl[1],
+            fl[2],
+            fl[3],
+            fm[0],
+            fm[1],
+            fhv[0],
+            fhv[1],
+            self.clock_seq_high_and_reserved,
+            self.clock_seq_low,
+            n[0],
+            n[1],
+            n[2],
+            n[3],
+            n[4],
+            n[5],
+        ]
+    }
+}
+
+impl fmt::Display for Layout {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let b = self.generate().0;
+        write!(
+                fmt,
+                "{:02x}{:02x}{:02x}{:02x}{:02x}{:02x}{:02x}{:02x}{:02x}{:02x}{:02x}{:02x}{:02x}{:02x}{:02x}{:02x}",
+                b[0],
+                b[1],
+                b[2],
+                b[3],
+                b[4],
+                b[5],
+                b[6],
+                b[7],
+                b[8],
+                b[9],
+                b[10],
+                b[11],
+                b[12],
+                b[13],
+                b[14],
+                b[15],
+            )
+    }
+}
+
+impl fmt::LowerHex for Layout {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let b = self.generate().0;
+        write!(
+                fmt,
+                "{:02x}{:02x}{:02x}{:02x}-{:02x}{:02x}-{:02x}{:02x}-{:02x}{:02x}-{:02x}{:02x}{:02x}{:02x}{:02x}{:02x}",
+                b[0],
+                b[1],
+                b[2],
+                b[3],
+                b[4],
+                b[5],
+                b[6],
+                b[7],
+                b[8],
+                b[9],
+                b[10],
+                b[11],
+                b[12],
+                b[13],
+                b[14],
+                b[15],
+            )
+    }
+}
+
+impl fmt::UpperHex for Layout {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let b = self.generate().0;
+        write!(
+                fmt,
+                "{:02X}{:02X}{:02X}{:02X}-{:02X}{:02X}-{:02X}{:02X}-{:02X}{:02X}-{:02X}{:02X}{:02X}{:02X}{:02X}{:02X}",
+                b[0],
+                b[1],
+                b[2],
+                b[3],
+                b[4],
+                b[5],
+                b[6],
+                b[7],
+                b[8],
+                b[9],
+                b[10],
+                b[11],
+                b[12],
+                b[13],
+                b[14],
+                b[15],
+            )
     }
 }
 
@@ -146,7 +253,7 @@ impl UUID {
         0xc8,
     ]);
 
-    // Parse `UUID` from a string of hex digits.
+    // Parse `UUID` from string of hex digits.
     pub fn from_str(us: &str) -> Result<Layout, &str> {
         let mut us = us.to_string();
         let mut bytes = [0; 16];
@@ -159,91 +266,98 @@ impl UUID {
             for i in 0..15 {
                 let s = &us[i * 2..i * 2 + 2];
                 let byte = u8::from_str_radix(s, 16).map_err(|_| "Invalid UUID string")?;
-
                 bytes[i] = byte;
             }
         } else {
             return Err("Invalid UUID string");
         }
 
-        Ok(layout!(
-            bytes[3], bytes[2], bytes[1], bytes[0], bytes[5], bytes[4], bytes[7], bytes[6],
-            bytes[9], bytes[8], bytes[10], bytes[11], bytes[12], bytes[13], bytes[14], bytes[15]
-        ))
+        Ok(Layout {
+            field_low: u32::from_le_bytes([bytes[3], bytes[2], bytes[1], bytes[0]]),
+            field_mid: u16::from_le_bytes([bytes[5], bytes[4]]),
+            field_high_and_version: u16::from_le_bytes([bytes[7], bytes[6]]),
+            clock_seq_high_and_reserved: bytes[8],
+            clock_seq_low: bytes[9],
+            node: MacAddress::new([
+                bytes[10], bytes[11], bytes[12], bytes[13], bytes[14], bytes[15],
+            ]),
+        })
     }
 }
-
 impl fmt::Display for UUID {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let b = self.0;
         write!(
                 fmt,
                 "{:02x}{:02x}{:02x}{:02x}{:02x}{:02x}{:02x}{:02x}{:02x}{:02x}{:02x}{:02x}{:02x}{:02x}{:02x}{:02x}",
-                self.0[0],
-                self.0[1],
-                self.0[2],
-                self.0[3],
-                self.0[4],
-                self.0[5],
-                self.0[6],
-                self.0[7],
-                self.0[8],
-                self.0[9],
-                self.0[10],
-                self.0[11],
-                self.0[12],
-                self.0[13],
-                self.0[14],
-                self.0[15],
+                b[0],
+                b[1],
+                b[2],
+                b[3],
+                b[4],
+                b[5],
+                b[6],
+                b[7],
+                b[8],
+                b[9],
+                b[10],
+                b[11],
+                b[12],
+                b[13],
+                b[14],
+                b[15],
             )
     }
 }
 
 impl fmt::LowerHex for UUID {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let b = self.0;
         write!(
             fmt,
             "{:02x}{:02x}{:02x}{:02x}-{:02x}{:02x}-{:02x}{:02x}-{:02x}{:02x}-{:02x}{:02x}{:02x}{:02x}{:02x}{:02x}",
-            self.0[0],
-            self.0[1],
-            self.0[2],
-            self.0[3],
-            self.0[4],
-            self.0[5],
-            self.0[6],
-            self.0[7],
-            self.0[8],
-            self.0[9],
-            self.0[10],
-            self.0[11],
-            self.0[12],
-            self.0[13],
-            self.0[14],
-            self.0[15],
+            b[0],
+            b[1],
+            b[2],
+            b[3],
+            b[4],
+            b[5],
+            b[6],
+            b[7],
+            b[8],
+            b[9],
+            b[10],
+            b[11],
+            b[12],
+            b[13],
+            b[14],
+            b[15],
         )
     }
 }
 
 impl fmt::UpperHex for UUID {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let b = self.0;
         write!(
             fmt,
             "{:02X}{:02X}{:02X}{:02X}-{:02X}{:02X}-{:02X}{:02X}-{:02X}{:02X}-{:02X}{:02X}{:02X}{:02X}{:02X}{:02X}",
-            self.0[0],
-            self.0[1],
-            self.0[2],
-            self.0[3],
-            self.0[4],
-            self.0[5],
-            self.0[6],
-            self.0[7],
-            self.0[8],
-            self.0[9],
-            self.0[10],
-            self.0[11],
-            self.0[12],
-            self.0[13],
-            self.0[14],
-            self.0[15],
+            b[0],
+            b[1],
+            b[2],
+            b[3],
+            b[4],
+            b[5],
+            b[6],
+            b[7],
+            b[8],
+            b[9],
+            b[10],
+            b[11],
+            b[12],
+            b[13],
+            b[14],
+            b[15],
         )
     }
 }
@@ -264,18 +378,6 @@ pub enum Version {
     SHA1,
 }
 
-impl std::string::ToString for Version {
-    fn to_string(&self) -> String {
-        match self {
-            Version::TIME => "TIME".to_owned(),
-            Version::DCE => "DCE".to_owned(),
-            Version::MD5 => "MD5".to_owned(),
-            Version::RAND => "RAND".to_owned(),
-            Version::SHA1 => "SHA1".to_owned(),
-        }
-    }
-}
-
 /// Is a type field determines the layout of `UUID`.
 #[derive(Debug, Eq, PartialEq, Clone, Copy)]
 pub enum Variant {
@@ -289,23 +391,13 @@ pub enum Variant {
     FUT,
 }
 
-impl std::string::ToString for Variant {
-    fn to_string(&self) -> String {
-        match self {
-            Variant::NCS => "NCS".to_owned(),
-            Variant::RFC4122 => "RFC".to_owned(),
-            Variant::MS => "MS".to_owned(),
-            Variant::FUT => "FUT".to_owned(),
-        }
-    }
-}
-
-/// Used to avoid duplicates that could arise when the clock is set backwards in time.
-pub struct ClockSeq(u16);
+/// Used to avoid duplicates that could arise when the clock is set backwards in time
+/// or to fill in timestamp digits beyond the computer's measurement accuracy.
+pub struct ClockSeq(pub u16);
 
 impl ClockSeq {
-    pub fn new(rand: u16) -> u16 {
-        AtomicU16::new(rand).fetch_add(1, atomic::Ordering::SeqCst)
+    pub fn new(&self) -> u16 {
+        AtomicU16::new(self.0).fetch_add(1, atomic::Ordering::SeqCst)
     }
 }
 
@@ -321,7 +413,7 @@ macro_rules! layout {
             field_high_and_version: ($b6 as u16) | ($b7 as u16) << 8,
             clock_seq_high_and_reserved: ($b8 & 0xf) as u8 | (Variant::RFC4122 as u8) << 4,
             clock_seq_low: $b9,
-            node: MacAddress::new([$b10, $b11, $b12, $b13, $b14, $b15]),
+            node: crate::Cell::new(MacAddress::new([$b10, $b11, $b12, $b13, $b14, $b15])),
         }
     };
 }
@@ -329,6 +421,32 @@ macro_rules! layout {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::fmt::Write;
+
+    static UUID_TEST: [&str; 5] = [
+        "ab720268-b83f-11ec-b909-0242ac120002",
+        "000003e8-c22b-21ec-bd01-d4bed9408ecc",
+        "17d040bd-44d6-3dab-8c26-724978b6a91d",
+        "6a665038-24cf-4cf6-9b61-05f0c2fc6c08",
+        "498f67a8-ebc5-5299-aa33-7c358b9c60e8",
+    ];
+
+    static VERSION_TEST: [Version; 5] = [
+        Version::TIME,
+        Version::DCE,
+        Version::MD5,
+        Version::RAND,
+        Version::SHA1,
+    ];
+
+    macro_rules! check {
+        ($buf:ident, $format:expr, $target:expr, $len:expr, $cond:expr) => {
+            $buf.clear();
+            write!($buf, $format, $target).unwrap();
+            assert!($buf.len() == $len);
+            assert!($buf.chars().all($cond), "{}", $buf);
+        };
+    }
 
     #[test]
     fn uuid_default() {
@@ -337,21 +455,70 @@ mod tests {
     }
 
     #[test]
-    fn parse_string() {
-        let cols = [
-            ("ab720268-b83f-11ec-b909-0242ac120002", Version::TIME),
-            ("000003e8-c22b-21ec-bd01-d4bed9408ecc", Version::DCE),
-            ("2448bd95-00ca-3650-160f-3301a691b26c", Version::MD5),
-            ("6a665038-24cf-4cf6-9b61-05f0c2fc6c08", Version::RAND),
-            ("991da866-83b0-5550-1bef-37a1a5b1fb30", Version::SHA1),
-        ];
+    fn uuid_compare() {
+        let uuid1 = UUID::from_str(UUID_TEST[0]).unwrap();
+        let uuid2 = UUID::from_str(UUID_TEST[1]).unwrap();
 
-        for item in cols {
-            assert_eq!(UUID::from_str(item.0).unwrap().get_version(), Ok(item.1));
+        assert_eq!(uuid1, uuid1);
+        assert_eq!(uuid2, uuid2);
+
+        assert_ne!(uuid1, uuid2);
+        assert_ne!(uuid2, uuid1);
+    }
+
+    #[test]
+    fn uuid_formatter() {
+        let uuid = UUID::from_str(UUID_TEST[0]).unwrap();
+        let s = uuid.to_string();
+        let mut buffer = String::new();
+
+        assert_eq!(s, uuid.to_string());
+
+        check!(buffer, "{}", uuid, 32, |c| c.is_lowercase()
+            || c.is_digit(10)
+            || c == '-');
+
+        check!(buffer, "{:x}", uuid, 36, |c| c.is_lowercase()
+            || c.is_digit(10)
+            || c == '-');
+
+        check!(buffer, "{:X}", uuid, 36, |c| c.is_uppercase()
+            || c.is_digit(10)
+            || c == '-');
+    }
+
+    #[test]
+    fn parse_uuid_string() {
+        for i in 0..5 {
             assert_eq!(
-                UUID::from_str(item.0).unwrap().get_variant(),
+                UUID::from_str(UUID_TEST[i]).unwrap().version(),
+                Ok(VERSION_TEST[i])
+            );
+            assert_eq!(
+                UUID::from_str(UUID_TEST[i]).unwrap().variant(),
                 Ok(Variant::RFC4122)
             );
+        }
+    }
+
+    #[test]
+    fn convert_layout_into_raw_bytes() {
+        let mut uuid;
+        for i in 0..5 {
+            uuid = UUID::from_str(UUID_TEST[i]).unwrap();
+            let into: Bytes = uuid.into();
+            assert_eq!(into, uuid.clone().generate().as_bytes())
+        }
+    }
+
+    #[test]
+    fn from_raw_bytes() {
+        let mut bytes: Bytes;
+        let mut uuid: Layout;
+        for i in 0..5 {
+            bytes = UUID::from_str(UUID_TEST[i]).unwrap().into();
+            uuid = Layout::from_raw_bytes(bytes);
+            assert_eq!(uuid.version().unwrap(), VERSION_TEST[i])
         }
     }
 }
