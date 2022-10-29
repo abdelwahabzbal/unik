@@ -23,20 +23,14 @@ impl Layout {
 }
 
 impl UUID {
-    pub fn from_dce_person() -> Layout {
-        Self::from_domain(Domain::PERSON, 0)
-    }
+    pub fn v2(domain: Domain, id: u32) -> Layout {
+        let id = {
+            #[cfg(all(windows))]
+            unsafe {
+                libc::getpid() as u32
+            }
 
-    pub fn from_dce_group() -> Layout {
-        Self::from_domain(Domain::GROUP, 0)
-    }
-
-    pub fn from_dce_org(id: u32) -> Layout {
-        Self::from_domain(Domain::ORG, id)
-    }
-
-    fn from_domain(domain: Domain, id: u32) -> Layout {
-        let id = if cfg!(unix) {
+            #[cfg(all(unix))]
             if domain == Domain::PERSON {
                 unsafe { libc::getuid() }.to_be_bytes()
             } else if domain == Domain::GROUP {
@@ -44,14 +38,6 @@ impl UUID {
             } else {
                 id.to_be_bytes()
             }
-        } else if cfg!(windows) {
-            if domain == Domain::PERSON || domain == Domain::GROUP {
-                unsafe { libc::getpid() as i32 }.to_be_bytes()
-            } else {
-                id.to_be_bytes()
-            }
-        } else {
-            panic!("Not supported yet!")
         };
 
         let mut uuid = UUID::v1().generate().as_bytes();
@@ -70,25 +56,10 @@ mod tests {
     use crate::Variant;
 
     #[test]
-    fn uuid_dce_person() {
-        let dce_person = UUID::from_dce_person();
-        assert_eq!(dce_person.version(), Ok(Version::DCE));
-        assert_eq!(dce_person.domain(), Ok(Domain::PERSON));
-    }
-
-    #[test]
-    fn uuid_dce_group() {
-        let dce_group = UUID::from_dce_group();
-        assert_eq!(dce_group.version(), Ok(Version::DCE));
-        assert_eq!(dce_group.domain(), Ok(Domain::GROUP));
-    }
-
-    #[test]
     fn uuid_dce_org() {
-        let dce_org = UUID::from_dce_org(1234);
-        assert_eq!(dce_org.version(), Ok(Version::DCE));
-        assert_eq!(dce_org.variant(), Ok(Variant::RFC4122));
-        assert_eq!(dce_org.domain(), Ok(Domain::ORG));
-        assert_eq!(dce_org.id(), 1234);
+        let dce = UUID::v2(Domain::PERSON, 1234);
+        assert_eq!(dce.version(), Ok(Version::DCE));
+        assert_eq!(dce.variant(), Ok(Variant::RFC4122));
+        assert_eq!(dce.domain(), Ok(Domain::PERSON));
     }
 }

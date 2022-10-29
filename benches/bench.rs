@@ -4,7 +4,7 @@
 extern crate test;
 use test::Bencher;
 
-use unik::{self, *};
+use unik::{self, rfc4122::v2::Domain, *};
 
 #[bench]
 fn new_uuid_v1(b: &mut Bencher) {
@@ -13,7 +13,7 @@ fn new_uuid_v1(b: &mut Bencher) {
 
 #[bench]
 fn new_uuid_v2(b: &mut Bencher) {
-    b.iter(|| UUID::from_dce_person().generate());
+    b.iter(|| UUID::v2(Domain::PERSON, 1234).generate());
 }
 
 #[bench]
