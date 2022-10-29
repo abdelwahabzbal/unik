@@ -35,30 +35,30 @@ impl UUID {
         Self::from_domain(Domain::ORG, id)
     }
 
-    fn from_domain(dom: Domain, i: u32) -> Layout {
+    fn from_domain(domain: Domain, id: u32) -> Layout {
         let id = if cfg!(unix) {
-            if dom == Domain::PERSON {
-                unsafe { libc::getpid() }.to_be_bytes()
-            } else if dom == Domain::GROUP {
+            if domain == Domain::PERSON {
+                unsafe { libc::getuid() }.to_be_bytes()
+            } else if domain == Domain::GROUP {
                 unsafe { libc::getgid() }.to_be_bytes()
             } else {
-                i.to_be_bytes()
+                id.to_be_bytes()
             }
         } else if cfg!(windows) {
-            if dom == Domain::PERSON || dom == Domain::GROUP {
+            if domain == Domain::PERSON || domain == Domain::GROUP {
                 unsafe { libc::getpid() as i32 }.to_be_bytes()
             } else {
-                i.to_be_bytes()
+                id.to_be_bytes()
             }
         } else {
-            panic!("Not supported")
+            panic!("Not supported yet!")
         };
 
         let mut uuid = UUID::v1().generate().as_bytes();
 
         uuid[0..4].copy_from_slice(&id);
         uuid[6] = (Version::DCE as u8) << 4;
-        uuid[9] = dom as u8;
+        uuid[9] = domain as u8;
 
         Layout::from_raw_bytes(uuid)
     }
