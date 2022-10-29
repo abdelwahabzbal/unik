@@ -24,7 +24,7 @@ impl Layout {
 
 impl UUID {
     pub fn v2(domain: Domain, id: u32) -> Layout {
-        let id = {
+        let id: [u8; 4] = {
             #[cfg(all(windows))]
             return unsafe { libc::getpid() as u32 }.to_be_bytes();
 
