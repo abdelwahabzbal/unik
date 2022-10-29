@@ -26,9 +26,7 @@ impl UUID {
     pub fn v2(domain: Domain, id: u32) -> Layout {
         let id = {
             #[cfg(all(windows))]
-            unsafe {
-                libc::getpid() as u32
-            }
+            unsafe { libc::getpid() as u32 }.to_be_bytes();
 
             #[cfg(all(unix))]
             if domain == Domain::PERSON {
