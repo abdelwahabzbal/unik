@@ -1,53 +1,40 @@
-use std::{
-    cell::Cell,
-    time::{Duration, SystemTime, UNIX_EPOCH},
-};
+use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 use mac_address::{get_mac_address, MacAddress};
 use nanorand::{Rng, WyRand};
 
-use crate::{layout, ClockSeq, Layout, TimeStamp, Variant, Version, UUID};
-
-impl Layout {
-    pub fn timestamp(&self) -> TimeStamp {
-        TimeStamp {
-            dur: self.field_low as u64
-                | (self.field_mid as u64) << 32
-                | ((self.field_high_and_version as u64 >> 4) & 0xff) << 48,
-        }
-    }
-}
+use crate::{layout, ClockSeq, Layout, Timestamp, Version, UUID};
 
 impl UUID {
-    /// Returns the `Layout` for `UUID` generated from `Node` and `TimeStamp`.
+    /// Returns the `Layout` for `UUID` generated from `Node` and `Timestamp`.
     pub fn v1() -> Layout {
-        let time = TimeStamp::from_utc();
-        let node = get_mac_address().unwrap().unwrap().bytes();
-        let clock_seq_high_and_reserved = clock_seq_high_and_reserved().to_le_bytes();
+        let ts = Timestamp::utc_epoch().to_be_bytes();
+        let cshr = clock_seq_high_and_reserved().to_be_bytes();
+        let n = get_mac_address().unwrap().unwrap().bytes();
         layout!(
-            time.to_le_bytes()[0],
-            time.to_le_bytes()[1],
-            time.to_le_bytes()[2],
-            time.to_le_bytes()[3],
-            time.to_le_bytes()[4],
-            time.to_le_bytes()[5],
-            time.to_le_bytes()[6],
-            (Version::TIME as u8) << 4,
-            clock_seq_high_and_reserved[0],
-            clock_seq_high_and_reserved[1],
-            node[0],
-            node[1],
-            node[2],
-            node[3],
-            node[4],
-            node[5]
+            ts[0],
+            ts[1],
+            ts[2],
+            ts[3],
+            ts[4],
+            ts[5],
+            ts[6],
+            ((Version::TIME as u8) << 0x4) | (ts[7] & 0xf),
+            cshr[0],
+            cshr[1],
+            n[0],
+            n[1],
+            n[2],
+            n[3],
+            n[4],
+            n[5]
         )
     }
 }
 
-impl TimeStamp {
+impl Timestamp {
     /// Returns the elapsed time since 01/01/1970.
-    pub fn from_unix() -> u64 {
+    pub fn unix_epoch() -> u64 {
         (SystemTime::now()
             .duration_since(UNIX_EPOCH)
             .unwrap()
@@ -56,55 +43,39 @@ impl TimeStamp {
     }
 
     /// Returns the elapsed time since 15/10/1582.
-    pub fn from_utc() -> u64 {
+    pub fn utc_epoch() -> u64 {
         (SystemTime::now()
             .duration_since(UNIX_EPOCH + Duration::from_nanos(0x01B2_1DD2_1381_4000))
             .unwrap()
             .as_nanos()
             & 0xffff_ffff) as u64
     }
-
-    pub fn get(&self) -> u64 {
-        self.0
-    }
 }
 
 pub(crate) fn clock_seq_high_and_reserved() -> u16 {
-    ClockSeq::new(WyRand::new().generate::<u16>()).to_le()
+    ClockSeq::new(WyRand::new().generate::<u16>())
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::Variant;
+
+    // static TIMESTAMP_TEST: u64 = 0;
 
     #[test]
-    fn uuid_builder_patt() {
+    fn uuid_from_builder() {
         let layout = UUID::v1();
         assert_eq!(layout.version(), Ok(Version::TIME));
         assert_eq!(layout.variant(), Ok(Variant::RFC4122));
-
-        layout.timestamp().dur.set(1234_5678u64);
-        assert_eq!(layout.timestamp().dur.get(), 1234_5678u64);
     }
 
-    // #[test]
-    // fn get_timestamp_from_uuid_string() {
-    //     let layout = UUID::v1();
-    //     layout.timestamp.set(1234_5678u64);
-    //     let timestamp = UUID::from_str(&layout.generate().to_string()).unwrap();
+    #[test]
+    fn layout_from_raw_bytes() {
+        let uuid = UUID::v1().generate();
+        let layout = Layout::from_raw_bytes(uuid.as_bytes());
 
-    //     assert_eq!(timestamp, 1234_5678u64);
-    // }
-
-    // #[test]
-    // fn layout_from_seq_bytes() {
-    //     let uuid = UUID::v1().generate();
-    //     let layout = Layout::from_bytes(uuid.as_bytes());
-
-    //     assert_eq!(layout.version(), Ok(Version::TIME));
-    //     assert_eq!(layout.variant(), Ok(Variant::RFC4122));
-
-    //     layout.timestamp.set(1234_5678u64);
-    //     assert_eq!(layout.timestamp.get(), 1234_5678u64);
-    // }
+        assert_eq!(layout.version(), Ok(Version::TIME));
+        assert_eq!(layout.variant(), Ok(Variant::RFC4122));
+    }
 }

@@ -1,13 +1,12 @@
-use crate::{layout, Layout, MacAddress, Variant, Version, UUID};
+use crate::{layout, Layout, MacAddress, Version, UUID};
 
 use nanorand::{Rng, WyRand};
 
 impl UUID {
     /// Creates a random `UUID`.
     pub fn v4() -> Layout {
-        let rand = get_random().to_le_bytes();
+        let rand = get_random().to_be_bytes();
         layout!(
-            std::cell::Cell::new(0),
             rand[0],
             rand[1],
             rand[2],
@@ -15,7 +14,7 @@ impl UUID {
             rand[4],
             rand[5],
             rand[6],
-            (Version::RAND as u8) << 4,
+            ((Version::RAND as u8) << 0x4) | (rand[7] & 0xf),
             rand[8],
             rand[9],
             rand[10],
@@ -35,6 +34,7 @@ pub(crate) fn get_random() -> u128 {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::Variant;
 
     #[test]
     fn uuid_from_random() {

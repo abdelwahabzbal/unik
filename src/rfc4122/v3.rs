@@ -1,6 +1,6 @@
 use sha1::Sha1;
 
-use crate::{layout, Layout, MacAddress, Variant, Version, UUID};
+use crate::{layout, Layout, MacAddress, Version, UUID};
 
 impl UUID {
     /// Creates `UUID` by hashing a namespace identifier and name using MD5 algorithm.
@@ -17,7 +17,7 @@ impl UUID {
             hash[4],
             hash[5],
             hash[6],
-            (Version::MD5 as u8) << 4,
+            ((Version::MD5 as u8) << 0x4) | (hash[7] & 0xf),
             hash[8],
             hash[9],
             hash[10],
@@ -33,6 +33,7 @@ impl UUID {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::Variant;
 
     #[test]
     fn uuid_using_hash_sha1() {
@@ -44,8 +45,8 @@ mod tests {
         ];
 
         for &ns in nss.iter() {
-            assert_eq!(UUID::v3("test", ns).get_version(), Ok(Version::MD5));
-            assert_eq!(UUID::v3("test", ns).get_variant(), Ok(Variant::RFC4122));
+            assert_eq!(UUID::v3("test", ns).version(), Ok(Version::MD5));
+            assert_eq!(UUID::v3("test", ns).variant(), Ok(Variant::RFC4122));
         }
     }
 }

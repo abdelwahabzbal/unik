@@ -1,4 +1,4 @@
-use crate::{Layout, Node, TimeStamp, Version, UUID};
+use crate::{Layout, Version, UUID};
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum Domain {
@@ -8,7 +8,7 @@ pub enum Domain {
 }
 
 impl Layout {
-    pub fn get_domain(&self) -> Result<Domain, &str> {
+    pub fn domain(&self) -> Result<Domain, &str> {
         match self.clock_seq_low {
             0 => Ok(Domain::PERSON),
             1 => Ok(Domain::GROUP),
@@ -17,7 +17,7 @@ impl Layout {
         }
     }
 
-    pub fn get_id(&self) -> u32 {
+    pub fn id(&self) -> u32 {
         self.field_low
     }
 }
@@ -60,7 +60,7 @@ impl UUID {
         uuid[6] = (Version::DCE as u8) << 4;
         uuid[9] = dom as u8;
 
-        Layout::from_bytes(uuid)
+        Layout::from_raw_bytes(uuid)
     }
 }
 
@@ -70,25 +70,25 @@ mod tests {
     use crate::Variant;
 
     #[test]
-    fn uuid_with_person() {
+    fn uuid_dce_person() {
         let dce_person = UUID::from_dce_person();
-        assert_eq!(dce_person.get_version(), Ok(Version::DCE));
-        assert_eq!(dce_person.get_domain(), Ok(Domain::PERSON));
+        assert_eq!(dce_person.version(), Ok(Version::DCE));
+        assert_eq!(dce_person.domain(), Ok(Domain::PERSON));
     }
 
     #[test]
-    fn uuid_with_group() {
+    fn uuid_dce_group() {
         let dce_group = UUID::from_dce_group();
-        assert_eq!(dce_group.get_version(), Ok(Version::DCE));
-        assert_eq!(dce_group.get_domain(), Ok(Domain::GROUP));
+        assert_eq!(dce_group.version(), Ok(Version::DCE));
+        assert_eq!(dce_group.domain(), Ok(Domain::GROUP));
     }
 
     #[test]
-    fn uuid_with_org() {
+    fn uuid_dce_org() {
         let dce_org = UUID::from_dce_org(1234);
-        assert_eq!(dce_org.get_version(), Ok(Version::DCE));
-        assert_eq!(dce_org.get_variant(), Ok(Variant::RFC4122));
-        assert_eq!(dce_org.get_domain(), Ok(Domain::ORG));
-        assert_eq!(dce_org.get_id(), 1234);
+        assert_eq!(dce_org.version(), Ok(Version::DCE));
+        assert_eq!(dce_org.variant(), Ok(Variant::RFC4122));
+        assert_eq!(dce_org.domain(), Ok(Domain::ORG));
+        assert_eq!(dce_org.id(), 1234);
     }
 }
