@@ -5,9 +5,8 @@
 //! requiring extra knowledge.
 //!
 //! A `UUID` is 128 bits long, and can guarantee uniqueness across space and time.
-#![feature(stmt_expr_attributes)]
 #![doc(html_root_url = "https://docs.rs/unik")]
-#![feature(doc_cfg)]
+#![cfg_attr(docsrs, feature(doc_auto_cfg))]
 
 pub mod rfc4122;
 
@@ -24,7 +23,7 @@ pub use mac_address::{get_mac_address, MacAddress as Node};
 
 /// Is a 60-bit value. Represented by Coordinated Universal Time (UTC).
 ///
-/// NOTE: `TimeStamp` used as a `u64`. For this reason dates prior to gregorian
+/// NOTE: `Timestamp` used as a `u64`. For this reason dates prior to gregorian
 /// calendar are not supported.
 #[derive(Debug, Clone)]
 pub struct Timestamp(Cell<u64>);

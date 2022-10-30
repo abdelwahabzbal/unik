@@ -1,3 +1,4 @@
+///! Hello
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 use mac_address::get_mac_address;
