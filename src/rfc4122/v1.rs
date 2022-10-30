@@ -1,6 +1,6 @@
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
-use mac_address::{get_mac_address, MacAddress};
+use mac_address::get_mac_address;
 use nanorand::{Rng, WyRand};
 
 use crate::{layout, ClockSeq, Layout, Timestamp, Version, UUID};

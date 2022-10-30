@@ -1,4 +1,4 @@
-use crate::{layout, Layout, MacAddress, Version, UUID};
+use crate::{layout, Layout, Version, UUID};
 
 impl UUID {
     /// Create `UUID` by hashing a namespace identifier and name using SHA1 algorithm.

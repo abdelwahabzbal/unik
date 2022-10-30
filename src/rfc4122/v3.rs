@@ -1,7 +1,6 @@
-///! Hello
 use sha1::Sha1;
 
-use crate::{layout, Layout, MacAddress, Version, UUID};
+use crate::{layout, Layout, Version, UUID};
 
 impl UUID {
     /// Creates `UUID` by hashing a namespace identifier and name using MD5 algorithm.

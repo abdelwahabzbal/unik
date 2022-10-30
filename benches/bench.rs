@@ -13,7 +13,7 @@ fn new_uuid_v1(b: &mut Bencher) {
 
 #[bench]
 fn new_uuid_v2(b: &mut Bencher) {
-    b.iter(|| UUID::v2(Domain::PERSON, 1234).generate());
+    b.iter(|| UUID::v2(Domain::PERSON).generate());
 }
 
 #[bench]

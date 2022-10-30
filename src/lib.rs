@@ -17,10 +17,10 @@ use std::{
     sync::atomic::{self, AtomicU16},
 };
 
-pub use mac_address::{get_mac_address, MacAddress};
+pub use mac_address::{get_mac_address, MacAddress as Node};
 
 /// Represent bytes of host address.
-pub type Node = MacAddress;
+// pub type Node = MacAddress;
 
 /// Is a 60-bit value. Represented by Coordinated Universal Time (UTC).
 ///
@@ -58,7 +58,7 @@ impl Layout {
             field_high_and_version,
             clock_seq_high_and_reserved: byte[8],
             clock_seq_low: byte[9],
-            node: MacAddress::new([byte[10], byte[11], byte[12], byte[13], byte[14], byte[15]]),
+            node: Node::new([byte[10], byte[11], byte[12], byte[13], byte[14], byte[15]]),
         }
     }
 
@@ -279,7 +279,7 @@ impl UUID {
             field_high_and_version: u16::from_be_bytes([bytes[6], bytes[7]]),
             clock_seq_high_and_reserved: bytes[8],
             clock_seq_low: bytes[9],
-            node: MacAddress::new([
+            node: Node::new([
                 bytes[10], bytes[11], bytes[12], bytes[13], bytes[14], bytes[15],
             ]),
         })
@@ -417,7 +417,7 @@ macro_rules! layout {
             field_high_and_version: ($b6 as u16) | ($b7 as u16) << 0x8,
             clock_seq_high_and_reserved: ($b8 & 0x7) as u8 | (0x5 << 0x5),
             clock_seq_low: $b9,
-            node: MacAddress::new([$b10, $b11, $b12, $b13, $b14, $b15]),
+            node: $crate::Node::new([$b10, $b11, $b12, $b13, $b14, $b15]),
         }
     };
 }

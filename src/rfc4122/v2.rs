@@ -23,24 +23,30 @@ impl Layout {
 }
 
 impl UUID {
-    pub fn v2(domain: Domain, id: u32) -> Layout {
-        let id: [u8; 4] = {
-            #[cfg(all(windows))]
-            return unsafe { libc::getpid() as u32 }.to_be_bytes();
+    pub fn v2(domain: Domain) -> Layout {
+        let i: [u8; 4];
 
-            #[cfg(all(unix))]
-            if domain == Domain::PERSON {
-                unsafe { libc::getuid() }.to_be_bytes()
-            } else if domain == Domain::GROUP {
-                unsafe { libc::getgid() }.to_be_bytes()
-            } else {
-                id.to_be_bytes()
-            }
-        };
+        #[cfg(all(windows))]
+        {
+            i = unsafe { libc::getpid() as u32 }.to_be_bytes();
+        }
+
+        #[cfg(all(unix))]
+        {
+            i = {
+                if domain == Domain::PERSON {
+                    unsafe { libc::getuid() }.to_be_bytes()
+                } else if domain == Domain::GROUP {
+                    unsafe { libc::getgid() }.to_be_bytes()
+                } else {
+                    panic!("sq")
+                }
+            };
+        }
 
         let mut uuid = UUID::v1().generate().as_bytes();
 
-        uuid[0..4].copy_from_slice(&id);
+        uuid[0..4].copy_from_slice(&i);
         uuid[6] = (Version::DCE as u8) << 4;
         uuid[9] = domain as u8;
 
@@ -55,7 +61,7 @@ mod tests {
 
     #[test]
     fn uuid_dce_org() {
-        let dce = UUID::v2(Domain::PERSON, 1234);
+        let dce = UUID::v2(Domain::PERSON);
         assert_eq!(dce.version(), Ok(Version::DCE));
         assert_eq!(dce.variant(), Ok(Variant::RFC4122));
         assert_eq!(dce.domain(), Ok(Domain::PERSON));
