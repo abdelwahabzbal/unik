@@ -14,13 +14,13 @@ This crate generates and inspects UUIDs based on
 ```TOML
 [dependencies]
 
-unik = { version = "*" }
+unik = { version = "*", features=["rand"] }
 ```
 
 ## Usage
 ```Rust
 fn main() {
-    println!("{:x}", unik::UUID::v4().generate());
+    println!("{}", unik::UUID::v4().new());
 }
 ```
 

@@ -8,25 +8,25 @@ use unik::{self, rfc4122::v2::Domain, *};
 
 #[bench]
 fn new_uuid_v1(b: &mut Bencher) {
-    b.iter(|| UUID::v1().generate());
+    b.iter(|| UUID::v1().new());
 }
 
 #[bench]
 fn new_uuid_v2(b: &mut Bencher) {
-    b.iter(|| UUID::v2(Domain::PERSON).generate());
+    b.iter(|| UUID::v2(Domain::PERSON).new());
 }
 
 #[bench]
 fn new_uuid_v3(b: &mut Bencher) {
-    b.iter(|| UUID::v3("bench", UUID::NAMESPACE_DNS).generate());
+    b.iter(|| UUID::v3("bench", UUID::NAMESPACE_DNS).new());
 }
 
 #[bench]
 fn new_uuid_v4(b: &mut Bencher) {
-    b.iter(|| UUID::v4().generate());
+    b.iter(|| UUID::v4().new());
 }
 
 #[bench]
 fn new_uuid_v5(b: &mut Bencher) {
-    b.iter(|| UUID::v5("bench", UUID::NAMESPACE_X500).generate());
+    b.iter(|| UUID::v5("bench", UUID::NAMESPACE_X500).new());
 }

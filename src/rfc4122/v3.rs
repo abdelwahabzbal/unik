@@ -5,7 +5,7 @@ use crate::{layout, Layout, Version, UUID};
 impl UUID {
     /// Creates `UUID` by hashing a namespace identifier and name using MD5 algorithm.
     pub fn v3<'a>(data: &str, ns: UUID) -> Layout {
-        let hash: [u8; 16] = Sha1::from(format!("{:x}", ns) + data).digest().bytes()[..16]
+        let hash: [u8; 16] = Sha1::from(format!("{}", ns) + data).digest().bytes()[..16]
             .try_into()
             .unwrap();
 
@@ -16,8 +16,8 @@ impl UUID {
             hash[3],
             hash[4],
             hash[5],
-            hash[6],
-            ((Version::MD5 as u8) << 0x4) | (hash[7] & 0xf),
+            ((Version::MD5 as u8) << 0x4) | (hash[6] & 0xf),
+            hash[7],
             hash[8],
             hash[9],
             hash[10],
@@ -45,8 +45,9 @@ mod tests {
         ];
 
         for &ns in nss.iter() {
-            assert_eq!(UUID::v3("test", ns).version(), Ok(Version::MD5));
-            assert_eq!(UUID::v3("test", ns).variant(), Ok(Variant::RFC4122));
+            let uuid = UUID::v3("test", ns).new();
+            assert_eq!(uuid.get_version(), Ok(Version::MD5));
+            assert_eq!(uuid.get_variant(), Ok(Variant::RFC4122));
         }
     }
 }
